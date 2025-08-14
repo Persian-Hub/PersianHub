@@ -1,0 +1,111 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Edit, Eye, MapPin } from "lucide-react"
+import Link from "next/link"
+
+interface Business {
+  id: string
+  name: string
+  slug: string
+  address: string
+  status: string
+  rejection_reason?: string
+  categories?: { name: string }
+  created_at: string
+}
+
+interface BusinessListProps {
+  businesses: Business[]
+}
+
+export function BusinessList({ businesses }: BusinessListProps) {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "approved":
+        return "bg-green-100 text-green-800"
+      case "pending":
+        return "bg-amber-100 text-amber-800"
+      case "rejected":
+        return "bg-red-100 text-red-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-serif text-xl">Your Businesses</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {businesses.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="font-sans text-gray-600 mb-4">You haven't added any businesses yet.</p>
+            <Link href="/dashboard/add-business">
+              <Button className="bg-amber-500 hover:bg-amber-600">Add Your First Business</Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {businesses.map((business) => (
+              <div
+                key={business.id}
+                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="font-serif font-semibold text-lg text-gray-900 mb-1">{business.name}</h3>
+                    <div className="flex items-center text-gray-500 mb-2">
+                      <MapPin className="h-4 w-4 mr-1" />
+                      <span className="font-sans text-sm">{business.address}</span>
+                    </div>
+                    {business.categories && (
+                      <p className="font-sans text-sm text-cyan-800">{business.categories.name}</p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Badge className={getStatusColor(business.status)}>{business.status}</Badge>
+                  </div>
+                </div>
+
+                {business.status === "rejected" && business.rejection_reason && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+                    <p className="font-sans text-sm text-red-700">
+                      <strong>Rejection reason:</strong> {business.rejection_reason}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <p className="font-sans text-sm text-gray-500">
+                    Created {new Date(business.created_at).toLocaleDateString()}
+                  </p>
+
+                  <div className="flex space-x-2">
+                    {business.status === "approved" && (
+                      <Link href={`/businesses/${business.slug}`}>
+                        <Button variant="outline" size="sm">
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                      </Link>
+                    )}
+
+                    <Link href={`/dashboard/businesses/${business.id}/edit`}>
+                      <Button variant="outline" size="sm">
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}

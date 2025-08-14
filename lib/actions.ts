@@ -1,0 +1,94 @@
+"use server"
+
+import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
+
+// Update the signIn function to handle redirects properly
+export async function signIn(prevState: any, formData: FormData) {
+  // Check if formData is valid
+  if (!formData) {
+    return { error: "Form data is missing" }
+  }
+
+  const email = formData.get("email")
+  const password = formData.get("password")
+
+  // Validate required fields
+  if (!email || !password) {
+    return { error: "Email and password are required" }
+  }
+
+  const cookieStore = cookies()
+  const supabase = createServerActionClient({ cookies: () => cookieStore })
+
+  try {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.toString(),
+      password: password.toString(),
+    })
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    // Return success instead of redirecting directly
+    return { success: true }
+  } catch (error) {
+    console.error("Login error:", error)
+    return { error: "An unexpected error occurred. Please try again." }
+  }
+}
+
+// Enhanced signUp function with profile creation
+export async function signUp(prevState: any, formData: FormData) {
+  // Check if formData is valid
+  if (!formData) {
+    return { error: "Form data is missing" }
+  }
+
+  const email = formData.get("email")
+  const password = formData.get("password")
+  const fullName = formData.get("fullName")
+  const businessOwner = formData.get("businessOwner") === "on"
+
+  // Validate required fields
+  if (!email || !password || !fullName) {
+    return { error: "All fields are required" }
+  }
+
+  const cookieStore = cookies()
+  const supabase = createServerActionClient({ cookies: () => cookieStore })
+
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: email.toString(),
+      password: password.toString(),
+      options: {
+        emailRedirectTo:
+          process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/callback`,
+        data: {
+          full_name: fullName.toString(),
+          is_business_owner: businessOwner,
+        },
+      },
+    })
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    return { success: "Check your email to confirm your account." }
+  } catch (error) {
+    console.error("Sign up error:", error)
+    return { error: "An unexpected error occurred. Please try again." }
+  }
+}
+
+export async function signOut() {
+  const cookieStore = cookies()
+  const supabase = createServerActionClient({ cookies: () => cookieStore })
+
+  await supabase.auth.signOut()
+  redirect("/auth/login")
+}
