@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { MapPin, User, LogOut } from "lucide-react"
+import { MapPin, User, LogOut, Shield } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { signOut } from "@/lib/actions"
 import {
@@ -16,6 +16,12 @@ export async function Header() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
+  let profile = null
+  if (user) {
+    const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+    profile = data
+  }
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -57,6 +63,19 @@ export async function Header() {
                   </Button>
                 </Link>
 
+                {profile?.role === "admin" && (
+                  <Link href="/admin">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-red-200 text-red-700 hover:bg-red-50 bg-transparent"
+                    >
+                      <Shield className="h-4 w-4 mr-2" />
+                      Admin
+                    </Button>
+                  </Link>
+                )}
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">
@@ -75,6 +94,17 @@ export async function Header() {
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
+                    {profile?.role === "admin" && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin" className="cursor-pointer">
+                            <Shield className="h-4 w-4 mr-2" />
+                            Admin Panel
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <form action={signOut} className="w-full">

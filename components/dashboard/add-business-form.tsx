@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { google } from 'google-maps'; // Import google to fix the undeclared variable error
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -9,9 +10,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
 import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { Loader2, Plus, X } from "lucide-react"
+import { Loader2, Plus, X } from 'lucide-react'
 
 interface Category {
   id: number
@@ -55,19 +57,56 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
     setServices(services.filter((s) => s !== service))
   }
 
+  // <CHANGE> Added address autocomplete handler
+  const handleAddressChange = (address: string, placeDetails?: google.maps.places.PlaceResult) => {
+    setFormData({ ...formData, address })
+    // You can also store latitude/longitude if needed:
+    // if (placeDetails?.geometry?.location) {
+    //   const lat = placeDetails.geometry.location.lat()
+    //   const lng = placeDetails.geometry.location.lng()
+    //   // Store lat/lng in formData or separate state
+    // }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", userId)
+        .single()
+
+      if (profileError && profileError.code === "PGRST116") {
+        // Profile doesn't exist, create it
+        const { data: user } = await supabase.auth.getUser()
+        if (user.user) {
+          const { error: createProfileError } = await supabase.from("profiles").insert({
+            id: userId,
+            email: user.user.email || "",
+            full_name: user.user.user_metadata?.full_name || "",
+          })
+
+          if (createProfileError) throw createProfileError
+        }
+      }
+
+      const slug = formData.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "")
+
       // Insert business
       const { data: business, error: businessError } = await supabase
         .from("businesses")
         .insert({
           ...formData,
+          slug, // Add generated slug
           owner_id: userId,
-          category_id: Number.parseInt(formData.category_id),
-          subcategory_id: formData.subcategory_id ? Number.parseInt(formData.subcategory_id) : null,
+          category_id: formData.category_id,
+          subcategory_id: formData.subcategory_id || null,
           status: "pending",
         })
         .select()
@@ -144,15 +183,15 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
             />
           </div>
 
+          {/* <CHANGE> Replaced Input with AddressAutocomplete */}
           <div className="space-y-2">
             <Label htmlFor="address" className="font-sans font-medium">
               Address *
             </Label>
-            <Input
-              id="address"
+            <AddressAutocomplete
               value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              placeholder="Full business address"
+              onChange={handleAddressChange}
+              placeholder="Start typing your business address..."
               required
             />
           </div>

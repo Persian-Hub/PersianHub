@@ -25,7 +25,7 @@ async function getCategoryBusinesses(categoryId: number) {
       *,
       categories(name, slug),
       subcategories(name, slug),
-      profiles(full_name)
+      profiles!owner_id(full_name)
     `)
     .eq("category_id", categoryId)
     .eq("status", "approved")

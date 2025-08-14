@@ -21,7 +21,7 @@ async function getBusinesses(searchParams: SearchParams) {
       *,
       categories(name, slug),
       subcategories(name, slug),
-      profiles(full_name)
+      profiles!owner_id(full_name)
     `)
     .eq("status", "approved")
 

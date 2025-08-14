@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,9 +8,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
 import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Loader2, Plus, X } from "lucide-react"
+
+// Importing google types for address handling
+import type { PlaceResult } from "@googlemaps/google-maps-services-js"
 
 interface Business {
   id: string
@@ -68,6 +71,11 @@ export function EditBusinessForm({ business, categories }: EditBusinessFormProps
     setServices(services.filter((s) => s !== service))
   }
 
+  // Added address autocomplete handler
+  const handleAddressChange = (address: string, placeDetails?: PlaceResult) => {
+    setFormData({ ...formData, address })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -78,8 +86,8 @@ export function EditBusinessForm({ business, categories }: EditBusinessFormProps
         .from("businesses")
         .update({
           ...formData,
-          category_id: Number.parseInt(formData.category_id),
-          subcategory_id: formData.subcategory_id ? Number.parseInt(formData.subcategory_id) : null,
+          category_id: formData.category_id,
+          subcategory_id: formData.subcategory_id || null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", business.id)
@@ -157,15 +165,15 @@ export function EditBusinessForm({ business, categories }: EditBusinessFormProps
             />
           </div>
 
+          {/* Replaced Input with AddressAutocomplete */}
           <div className="space-y-2">
             <Label htmlFor="address" className="font-sans font-medium">
               Address *
             </Label>
-            <Input
-              id="address"
+            <AddressAutocomplete
               value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              placeholder="Full business address"
+              onChange={handleAddressChange}
+              placeholder="Start typing your business address..."
               required
             />
           </div>

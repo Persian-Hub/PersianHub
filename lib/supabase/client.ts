@@ -7,5 +7,27 @@ export const isSupabaseConfigured =
   typeof process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY === "string" &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.length > 0
 
-// Create a singleton instance of the Supabase client for Client Components
-export const supabase = createClientComponentClient()
+export function createClient() {
+  try {
+    if (!isSupabaseConfigured) {
+      console.warn("Supabase environment variables are not set.")
+      return null
+    }
+    return createClientComponentClient()
+  } catch (error) {
+    console.error("Failed to create Supabase client:", error)
+    return null
+  }
+}
+
+let clientInstance: any = null
+try {
+  if (isSupabaseConfigured) {
+    clientInstance = createClientComponentClient()
+  }
+} catch (error) {
+  console.error("Failed to initialize Supabase client:", error)
+  clientInstance = null
+}
+
+export const supabase = clientInstance
