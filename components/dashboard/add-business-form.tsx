@@ -100,17 +100,34 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
         }
       }
 
-      const slug = formData.name
+      const baseSlug = formData.name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "")
+
+      let slug = baseSlug
+      let counter = 1
+
+      // Check if slug exists and increment until we find a unique one
+      while (true) {
+        const { data: existingBusiness } = await supabase.from("businesses").select("id").eq("slug", slug).single()
+
+        if (!existingBusiness) {
+          // Slug is unique, we can use it
+          break
+        }
+
+        // Slug exists, try with a number suffix
+        slug = `${baseSlug}-${counter}`
+        counter++
+      }
 
       // Insert business
       const { data: business, error: businessError } = await supabase
         .from("businesses")
         .insert({
           ...formData,
-          slug, // Add generated slug
+          slug, // Add generated unique slug
           owner_id: userId,
           category_id: formData.category_id,
           subcategory_id: formData.subcategory_id || null,

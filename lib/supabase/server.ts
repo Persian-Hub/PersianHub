@@ -47,3 +47,5 @@ export const createClient = cache(() => {
     }
   }
 })
+
+export const createServerClient = createClient

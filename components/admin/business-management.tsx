@@ -24,6 +24,7 @@ interface Business {
   is_verified: boolean
   is_sponsored: boolean
   created_at: string
+  images?: string[] // Added images field
   profiles: { full_name: string; email: string }
   categories: { name: string }
   subcategories: { name: string }
@@ -189,10 +190,27 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
                     </DialogHeader>
                     {selectedBusiness && (
                       <div className="space-y-4">
+                        {selectedBusiness.images && selectedBusiness.images.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">Business Images</h4>
+                            <div className="grid grid-cols-3 gap-2">
+                              {selectedBusiness.images.map((image, index) => (
+                                <img
+                                  key={index}
+                                  src={image || "/placeholder.svg"}
+                                  alt={`${selectedBusiness.name} image ${index + 1}`}
+                                  className="w-full h-24 object-cover rounded border"
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         <div>
                           <h3 className="font-semibold text-lg">{selectedBusiness.name}</h3>
                           <p className="text-gray-600">{selectedBusiness.description}</p>
                         </div>
+
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div className="space-y-2">
                             <p className="flex items-center">
