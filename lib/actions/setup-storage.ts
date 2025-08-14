@@ -35,36 +35,53 @@ export async function ensureStorageBucket() {
         return { success: false, error: createError.message }
       }
 
-      // Set up storage policies for the bucket
-      const policies = [
-        // Allow authenticated users to upload images
-        {
-          name: "Allow authenticated users to upload images",
-          definition: `(auth.role() = 'authenticated')`,
-          command: "INSERT",
-        },
+      // Set up storage policies for the bucket using SQL
+      const policyQueries = [
+        // Allow authenticated users to upload images to business-images folder
+        `
+        CREATE POLICY "Allow authenticated users to upload business images" ON storage.objects
+        FOR INSERT WITH CHECK (
+          auth.role() = 'authenticated' 
+          AND bucket_id = 'images' 
+          AND (storage.foldername(name))[1] = 'business-images'
+        );
+        `,
+        // Allow authenticated users to view images
+        `
+        CREATE POLICY "Allow authenticated users to view business images" ON storage.objects
+        FOR SELECT USING (
+          bucket_id = 'images' 
+          AND (storage.foldername(name))[1] = 'business-images'
+        );
+        `,
         // Allow authenticated users to update their own images
-        {
-          name: "Allow authenticated users to update images",
-          definition: `(auth.role() = 'authenticated')`,
-          command: "UPDATE",
-        },
+        `
+        CREATE POLICY "Allow authenticated users to update business images" ON storage.objects
+        FOR UPDATE USING (
+          auth.role() = 'authenticated' 
+          AND bucket_id = 'images' 
+          AND (storage.foldername(name))[1] = 'business-images'
+        );
+        `,
         // Allow authenticated users to delete their own images
-        {
-          name: "Allow authenticated users to delete images",
-          definition: `(auth.role() = 'authenticated')`,
-          command: "DELETE",
-        },
-        // Allow public read access
-        {
-          name: "Allow public read access",
-          definition: `true`,
-          command: "SELECT",
-        },
+        `
+        CREATE POLICY "Allow authenticated users to delete business images" ON storage.objects
+        FOR DELETE USING (
+          auth.role() = 'authenticated' 
+          AND bucket_id = 'images' 
+          AND (storage.foldername(name))[1] = 'business-images'
+        );
+        `,
       ]
 
-      // Note: Storage policies are typically set up via SQL or Supabase dashboard
-      // The bucket creation above should be sufficient for basic functionality
+      // Execute each policy query
+      for (const query of policyQueries) {
+        const { error: policyError } = await supabaseAdmin.rpc("exec_sql", { sql: query })
+        if (policyError) {
+          console.error("Error creating storage policy:", policyError)
+          // Continue with other policies even if one fails
+        }
+      }
     }
 
     return { success: true }

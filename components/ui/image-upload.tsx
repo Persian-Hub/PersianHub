@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label"
 import { supabase } from "@/lib/supabase/client"
 import { Upload, X, Star, StarOff, ImageIcon } from "lucide-react"
 import Image from "next/image"
-import { ensureStorageBucket } from "@/lib/actions/setup-storage"
 
 interface ImageUploadProps {
   images: string[]
@@ -25,25 +24,19 @@ export function ImageUpload({ images, defaultImage, onImagesChange, maxImages = 
     try {
       setUploading(true)
 
-      const bucketResult = await ensureStorageBucket()
-      if (!bucketResult.success) {
-        throw new Error(`Failed to setup storage: ${bucketResult.error}`)
-      }
-
       // Create unique filename
       const fileExt = file.name.split(".").pop()
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
       const filePath = `business-images/${fileName}`
 
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage.from("images").upload(filePath, file)
+      const { data, error } = await supabase.storage.from("business-images").upload(filePath, file)
 
       if (error) throw error
 
       // Get public URL
       const {
         data: { publicUrl },
-      } = supabase.storage.from("images").getPublicUrl(filePath)
+      } = supabase.storage.from("business-images").getPublicUrl(filePath)
 
       // Add to images array
       const newImages = [...images, publicUrl]
