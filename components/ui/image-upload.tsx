@@ -25,6 +25,25 @@ export function ImageUpload({ images, defaultImage, onImagesChange, maxImages = 
     try {
       setUploading(true)
 
+      const { data: buckets, error: listError } = await supabase.storage.listBuckets()
+
+      if (!listError) {
+        const bucketExists = buckets?.some((bucket) => bucket.name === "images")
+
+        if (!bucketExists) {
+          const { error: createError } = await supabase.storage.createBucket("images", {
+            public: true,
+            allowedMimeTypes: ["image/*"],
+            fileSizeLimit: 5242880, // 5MB
+          })
+
+          if (createError) {
+            console.error("Error creating bucket:", createError)
+            // Continue anyway, might be a permissions issue but bucket might exist
+          }
+        }
+      }
+
       // Create unique filename
       const fileExt = file.name.split(".").pop()
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
@@ -47,7 +66,8 @@ export function ImageUpload({ images, defaultImage, onImagesChange, maxImages = 
       onImagesChange(newImages, newDefaultImage)
     } catch (error) {
       console.error("Error uploading image:", error)
-      alert("Error uploading image. Please try again.")
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
+      alert(`Error uploading image: ${errorMessage}. Please try again.`)
     } finally {
       setUploading(false)
     }
