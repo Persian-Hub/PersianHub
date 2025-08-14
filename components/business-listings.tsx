@@ -53,7 +53,9 @@ export function BusinessListings() {
           *,
           profiles!owner_id(full_name),
           categories(name),
-          subcategories(name)
+          subcategories(name),
+          ST_Y(location) as latitude,
+          ST_X(location) as longitude
         `)
         .eq("status", "approved")
         .limit(20)
@@ -98,14 +100,14 @@ export function BusinessListings() {
       if (userLocation && businessData.length > 0) {
         // Calculate distances and sort by distance
         const businessesWithDistance = businessData.map((business) => {
-          if (business.latitude && business.longitude) {
+          if (business.latitude && business.longitude && !isNaN(business.latitude) && !isNaN(business.longitude)) {
             const distance = calculateDistance(
               userLocation.lat,
               userLocation.lng,
               business.latitude,
               business.longitude,
             )
-            return { ...business, distance }
+            return { ...business, distance: Math.round(distance * 10) / 10 } // Round to 1 decimal place
           }
           return { ...business, distance: 999 } // Put businesses without coordinates at the end
         })
