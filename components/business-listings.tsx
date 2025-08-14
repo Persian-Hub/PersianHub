@@ -54,8 +54,8 @@ export function BusinessListings() {
           profiles!owner_id(full_name),
           categories(name),
           subcategories(name),
-          ST_Y(location) as latitude,
-          ST_X(location) as longitude
+          latitude,
+          longitude
         `)
         .eq("status", "approved")
         .limit(20)
