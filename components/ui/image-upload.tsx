@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -9,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { supabase } from "@/lib/supabase/client"
 import { Upload, X, Star, StarOff, ImageIcon } from "lucide-react"
 import Image from "next/image"
+import { ensureStorageBucket } from "@/lib/actions/setup-storage"
 
 interface ImageUploadProps {
   images: string[]
@@ -25,23 +25,9 @@ export function ImageUpload({ images, defaultImage, onImagesChange, maxImages = 
     try {
       setUploading(true)
 
-      const { data: buckets, error: listError } = await supabase.storage.listBuckets()
-
-      if (!listError) {
-        const bucketExists = buckets?.some((bucket) => bucket.name === "images")
-
-        if (!bucketExists) {
-          const { error: createError } = await supabase.storage.createBucket("images", {
-            public: true,
-            allowedMimeTypes: ["image/*"],
-            fileSizeLimit: 5242880, // 5MB
-          })
-
-          if (createError) {
-            console.error("Error creating bucket:", createError)
-            // Continue anyway, might be a permissions issue but bucket might exist
-          }
-        }
+      const bucketResult = await ensureStorageBucket()
+      if (!bucketResult.success) {
+        throw new Error(`Failed to setup storage: ${bucketResult.error}`)
       }
 
       // Create unique filename
