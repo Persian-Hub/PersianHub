@@ -15,7 +15,7 @@ async function getBusiness(slug: string) {
       *,
       categories(name, slug),
       subcategories(name, slug),
-      profiles(full_name),
+      profiles!owner_id(full_name),
       business_services(service_name)
     `)
     .eq("slug", slug)
@@ -36,7 +36,7 @@ async function getBusinessReviews(businessId: string) {
     .from("reviews")
     .select(`
       *,
-      profiles(full_name)
+      profiles!reviewer_id(full_name)
     `)
     .eq("business_id", businessId)
     .eq("status", "approved")

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
+import { ImageUpload } from "@/components/ui/image-upload"
 import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Loader2, Plus, X } from "lucide-react"
@@ -26,6 +27,7 @@ interface Business {
   website?: string
   category_id: number
   subcategory_id?: number
+  images?: string[]
   business_services: { service_name: string }[]
 }
 
@@ -46,6 +48,10 @@ export function EditBusinessForm({ business, categories }: EditBusinessFormProps
   const [loading, setLoading] = useState(false)
   const [services, setServices] = useState<string[]>(business.business_services.map((s) => s.service_name))
   const [newService, setNewService] = useState("")
+  const [images, setImages] = useState<string[]>(business.images || [])
+  const [defaultImage, setDefaultImage] = useState<string | undefined>(
+    business.images && business.images.length > 0 ? business.images[0] : undefined,
+  )
 
   const [formData, setFormData] = useState({
     name: business.name,
@@ -71,6 +77,11 @@ export function EditBusinessForm({ business, categories }: EditBusinessFormProps
     setServices(services.filter((s) => s !== service))
   }
 
+  const handleImagesChange = (newImages: string[], newDefaultImage?: string) => {
+    setImages(newImages)
+    setDefaultImage(newDefaultImage)
+  }
+
   // Added address autocomplete handler
   const handleAddressChange = (address: string, placeDetails?: PlaceResult) => {
     setFormData({ ...formData, address })
@@ -88,6 +99,7 @@ export function EditBusinessForm({ business, categories }: EditBusinessFormProps
           ...formData,
           category_id: formData.category_id,
           subcategory_id: formData.subcategory_id || null,
+          images: images, // Add images array
           updated_at: new Date().toISOString(),
         })
         .eq("id", business.id)
@@ -206,6 +218,8 @@ export function EditBusinessForm({ business, categories }: EditBusinessFormProps
               />
             </div>
           </div>
+
+          <ImageUpload images={images} defaultImage={defaultImage} onImagesChange={handleImagesChange} maxImages={5} />
 
           {/* Category Selection */}
           <div className="grid md:grid-cols-2 gap-6">
