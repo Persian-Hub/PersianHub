@@ -70,6 +70,14 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
     subcategory_id: "",
   })
 
+  const [coordinates, setCoordinates] = useState<{
+    latitude: number | null
+    longitude: number | null
+  }>({
+    latitude: null,
+    longitude: null,
+  })
+
   const selectedCategory = categories.find((cat) => cat.id.toString() === formData.category_id)
 
   const addService = () => {
@@ -90,6 +98,16 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
 
   const handleAddressChange = (address: string, placeDetails?: google.maps.places.PlaceResult) => {
     setFormData({ ...formData, address })
+
+    if (placeDetails?.geometry?.location) {
+      const lat = placeDetails.geometry.location.lat()
+      const lng = placeDetails.geometry.location.lng()
+      setCoordinates({
+        latitude: lat,
+        longitude: lng,
+      })
+      console.log("[v0] Coordinates extracted:", { lat, lng })
+    }
   }
 
   const handleHoursChange = (day: string, value: string) => {
@@ -166,6 +184,8 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
           images: images,
           opening_hours: workingHours,
           status: "pending",
+          latitude: coordinates.latitude,
+          longitude: coordinates.longitude,
         })
         .select()
         .single()

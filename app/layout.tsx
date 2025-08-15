@@ -21,6 +21,9 @@ export const metadata: Metadata = {
   title: "Persian Hub - Discover Persian-Owned Businesses",
   description: "Explore Persian-owned businesses near you that celebrate our culture and heritage.",
   generator: "v0.app",
+  icons: {
+    icon: "/favicon.ico",
+  },
 }
 
 export default function RootLayout({

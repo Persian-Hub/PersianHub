@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import Image from "next/image"
 
 export async function Header() {
   const supabase = createClient()
@@ -28,9 +29,9 @@ export async function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-cyan-800 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">PH</span>
+          <Link href="/" className="flex items-center space-x-3">
+            <div className="w-10 h-10 relative">
+              <Image src="/logo.png" alt="Persian Hub Logo" width={40} height={40} className="object-contain" />
             </div>
             <span className="font-serif font-bold text-xl text-gray-900">Persian Hub</span>
           </Link>

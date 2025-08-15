@@ -40,7 +40,6 @@ export function BusinessCard({ business }: BusinessCardProps) {
 
   const getCurrentDayHours = () => {
     if (!business.opening_hours) return null
-    const today = new Date().toLocaleLowerCase().slice(0, 3) // mon, tue, etc.
     const dayKey = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][new Date().getDay()]
     return business.opening_hours[dayKey]
   }

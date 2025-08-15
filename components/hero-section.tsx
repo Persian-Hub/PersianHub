@@ -20,18 +20,12 @@ export function HeroSection() {
     <section className="bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 py-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         {/* Hero Content */}
-        <div className="mb-4">
-          <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mx-auto mb-4">
-            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
-              <span className="text-white font-bold text-sm">📋</span>
-            </div>
-          </div>
-        </div>
+        
 
-        <h1 className="font-bold text-4xl lg:text-5xl text-white mb-4">Business Directory</h1>
+        
 
         <p className="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
-          Discover amazing local businesses in your area. Connect with services, restaurants, shops, and more.
+          Discover amazing local Persian businesses in your area. Connect with services, restaurants, shops, and more.
         </p>
 
         {/* Search Form */}

@@ -196,7 +196,7 @@ export function Footer() {
               </Link>
             </div>
           </div>
-          <p className="text-sm text-gray-600">© 2024 Business Finder. All rights reserved.</p>
+          <p className="text-sm text-gray-600">© 2024 Persian Hub. All rights reserved.</p>
         </div>
       </div>
     </footer>

@@ -1,12 +1,14 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useRef, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { getGoogleMapsScriptUrl } from "@/lib/actions/maps"
 
 interface AddressAutocompleteProps {
   value: string
-  onChange: (value: string) => void
+  onChange: (value: string, placeDetails?: any) => void
   placeholder?: string
   className?: string
 }
@@ -27,6 +29,7 @@ export function AddressAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null)
   const autocompleteRef = useRef<any>(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [isPlaceSelection, setIsPlaceSelection] = useState(false)
 
   useEffect(() => {
     const loadGoogleMapsAPI = async () => {
@@ -71,19 +74,23 @@ export function AddressAutocomplete({
       autocompleteRef.current.addListener("place_changed", () => {
         const place = autocompleteRef.current.getPlace()
         if (place.formatted_address) {
-          onChange(place.formatted_address)
+          setIsPlaceSelection(true)
+          onChange(place.formatted_address, place)
+          // Reset the flag after a short delay to allow for the state update
+          setTimeout(() => setIsPlaceSelection(false), 100)
         }
       })
     }
   }, [isLoaded, onChange])
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only call onChange for manual typing, not when Google Places is setting the value
+    if (!isPlaceSelection) {
+      onChange(e.target.value)
+    }
+  }
+
   return (
-    <Input
-      ref={inputRef}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className={className}
-    />
+    <Input ref={inputRef} value={value} onChange={handleInputChange} placeholder={placeholder} className={className} />
   )
 }

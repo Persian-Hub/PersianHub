@@ -14,8 +14,7 @@ import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Loader2, Plus, X } from "lucide-react"
 
-// Importing google types for address handling
-import type { PlaceResult } from "@googlemaps/google-maps-services-js"
+import type { google } from "google-maps"
 
 interface Business {
   id: string
@@ -29,6 +28,8 @@ interface Business {
   subcategory_id?: number
   images?: string[]
   business_services: { service_name: string }[]
+  latitude?: number
+  longitude?: number
 }
 
 interface Category {
@@ -64,6 +65,14 @@ export function EditBusinessForm({ business, categories }: EditBusinessFormProps
     subcategory_id: business.subcategory_id?.toString() || "",
   })
 
+  const [coordinates, setCoordinates] = useState<{
+    latitude: number | null
+    longitude: number | null
+  }>({
+    latitude: business.latitude || null,
+    longitude: business.longitude || null,
+  })
+
   const selectedCategory = categories.find((cat) => cat.id.toString() === formData.category_id)
 
   const addService = () => {
@@ -82,9 +91,18 @@ export function EditBusinessForm({ business, categories }: EditBusinessFormProps
     setDefaultImage(newDefaultImage)
   }
 
-  // Added address autocomplete handler
-  const handleAddressChange = (address: string, placeDetails?: PlaceResult) => {
+  const handleAddressChange = (address: string, placeDetails?: google.maps.places.PlaceResult) => {
     setFormData({ ...formData, address })
+
+    if (placeDetails?.geometry?.location) {
+      const lat = placeDetails.geometry.location.lat()
+      const lng = placeDetails.geometry.location.lng()
+      setCoordinates({
+        latitude: lat,
+        longitude: lng,
+      })
+      console.log("[v0] Coordinates updated:", { lat, lng })
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,14 +110,15 @@ export function EditBusinessForm({ business, categories }: EditBusinessFormProps
     setLoading(true)
 
     try {
-      // Update business
       const { error: businessError } = await supabase
         .from("businesses")
         .update({
           ...formData,
           category_id: formData.category_id,
           subcategory_id: formData.subcategory_id || null,
-          images: images, // Add images array
+          images: images,
+          latitude: coordinates.latitude,
+          longitude: coordinates.longitude,
           updated_at: new Date().toISOString(),
         })
         .eq("id", business.id)
@@ -177,7 +196,6 @@ export function EditBusinessForm({ business, categories }: EditBusinessFormProps
             />
           </div>
 
-          {/* Replaced Input with AddressAutocomplete */}
           <div className="space-y-2">
             <Label htmlFor="address" className="font-sans font-medium">
               Address *
