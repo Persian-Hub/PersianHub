@@ -4,7 +4,7 @@ ADD COLUMN IF NOT EXISTS latitude DECIMAL(10, 8),
 ADD COLUMN IF NOT EXISTS longitude DECIMAL(11, 8);
 
 -- Update existing businesses with coordinates extracted from location column
--- Convert geography to geometry first, then extract coordinates
+-- Convert geography to geometry before using ST_X/ST_Y functions
 UPDATE businesses 
 SET 
   latitude = ST_Y(location::geometry),

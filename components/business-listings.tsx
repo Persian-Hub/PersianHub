@@ -23,6 +23,10 @@ interface Business {
   phone?: string
   services?: string[]
   distance?: number
+  business_services?: { service_name: string }[]
+  reviews?: { rating: number }[]
+  avg_rating?: number
+  review_count?: number
 }
 
 // Calculate distance between two coordinates using Haversine formula
@@ -54,6 +58,8 @@ export function BusinessListings() {
           profiles!owner_id(full_name),
           categories(name),
           subcategories(name),
+          business_services(service_name),
+          reviews(rating),
           latitude,
           longitude
         `)
@@ -61,7 +67,21 @@ export function BusinessListings() {
         .limit(20)
 
       if (error) throw error
-      return businessData || []
+
+      const businessesWithStats = (businessData || []).map((business) => {
+        const reviews = business.reviews || []
+        const avgRating =
+          reviews.length > 0 ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0
+        const reviewCount = reviews.length
+
+        return {
+          ...business,
+          avg_rating: avgRating,
+          review_count: reviewCount,
+        }
+      })
+
+      return businessesWithStats
     } catch (error) {
       console.error("Error fetching businesses:", error)
       return []

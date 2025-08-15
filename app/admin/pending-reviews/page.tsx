@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { ReviewManagement } from "@/components/admin/review-management"
 import { AdminLayout } from "@/components/admin/admin-layout"
-import { Search, MessageSquare } from "lucide-react"
+import { ReviewManagement } from "@/components/admin/review-management"
+import { MessageSquare } from "lucide-react"
 
-async function getReviews() {
+async function getPendingReviews() {
   const supabase = await createClient()
 
   const {
@@ -21,7 +21,7 @@ async function getReviews() {
     redirect("/")
   }
 
-  // Get all reviews with business and reviewer info
+  // Get only pending reviews
   const { data: reviews } = await supabase
     .from("reviews")
     .select(`
@@ -29,33 +29,26 @@ async function getReviews() {
       businesses(name, slug),
       profiles!reviewer_id(full_name, email)
     `)
+    .eq("status", "pending")
     .order("created_at", { ascending: false })
 
   return { reviews: reviews || [] }
 }
 
-export default async function ReviewsPage() {
-  const { reviews } = await getReviews()
+export default async function PendingReviewsPage() {
+  const { reviews } = await getPendingReviews()
 
   return (
     <AdminLayout>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">All Reviews</h1>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <input
-            type="text"
-            placeholder="Search reviews..."
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Pending Reviews</h1>
       </div>
 
       {reviews.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <MessageSquare className="h-16 w-16 text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No reviews found</h3>
-          <p className="text-gray-500">No reviews match your search criteria.</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No pending reviews</h3>
+          <p className="text-gray-500">All reviews have been reviewed.</p>
         </div>
       ) : (
         <ReviewManagement reviews={reviews} />

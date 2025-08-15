@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import type { google } from "google-maps" // Import google to fix the undeclared variable error
+import type { google } from "google-maps"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -28,6 +28,20 @@ interface AddBusinessFormProps {
   userId: string
 }
 
+interface WorkingHours {
+  [key: string]: string
+}
+
+const DAYS = [
+  { key: "mon", label: "Monday" },
+  { key: "tue", label: "Tuesday" },
+  { key: "wed", label: "Wednesday" },
+  { key: "thu", label: "Thursday" },
+  { key: "fri", label: "Friday" },
+  { key: "sat", label: "Saturday" },
+  { key: "sun", label: "Sunday" },
+]
+
 export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -35,6 +49,15 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
   const [newService, setNewService] = useState("")
   const [images, setImages] = useState<string[]>([])
   const [defaultImage, setDefaultImage] = useState<string>()
+  const [workingHours, setWorkingHours] = useState<WorkingHours>({
+    mon: "closed",
+    tue: "closed",
+    wed: "closed",
+    thu: "closed",
+    fri: "closed",
+    sat: "closed",
+    sun: "closed",
+  })
 
   const [formData, setFormData] = useState({
     name: "",
@@ -67,12 +90,26 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
 
   const handleAddressChange = (address: string, placeDetails?: google.maps.places.PlaceResult) => {
     setFormData({ ...formData, address })
-    // You can also store latitude/longitude if needed:
-    // if (placeDetails?.geometry?.location) {
-    //   const lat = placeDetails.geometry.location.lat()
-    //   const lng = placeDetails.geometry.location.lng()
-    //   // Store lat/lng in formData or separate state
-    // }
+  }
+
+  const handleHoursChange = (day: string, value: string) => {
+    setWorkingHours((prev) => ({ ...prev, [day]: value }))
+  }
+
+  const formatTimeInput = (value: string): string => {
+    const cleaned = value.replace(/[^\d:]/g, "")
+    if (cleaned.length <= 2) {
+      return cleaned
+    } else if (cleaned.length <= 4) {
+      return cleaned.slice(0, 2) + ":" + cleaned.slice(2)
+    } else {
+      return cleaned.slice(0, 5)
+    }
+  }
+
+  const validateTimeFormat = (time: string): boolean => {
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
+    return timeRegex.test(time)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,7 +124,6 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
         .single()
 
       if (profileError && profileError.code === "PGRST116") {
-        // Profile doesn't exist, create it
         const { data: user } = await supabase.auth.getUser()
         if (user.user) {
           const { error: createProfileError } = await supabase.from("profiles").insert({
@@ -108,30 +144,27 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
       let slug = baseSlug
       let counter = 1
 
-      // Check if slug exists and increment until we find a unique one
       while (true) {
         const { data: existingBusiness } = await supabase.from("businesses").select("id").eq("slug", slug).single()
 
         if (!existingBusiness) {
-          // Slug is unique, we can use it
           break
         }
 
-        // Slug exists, try with a number suffix
         slug = `${baseSlug}-${counter}`
         counter++
       }
 
-      // Insert business
       const { data: business, error: businessError } = await supabase
         .from("businesses")
         .insert({
           ...formData,
-          slug, // Add generated unique slug
+          slug,
           owner_id: userId,
           category_id: formData.category_id,
           subcategory_id: formData.subcategory_id || null,
-          images: images, // Add images array
+          images: images,
+          opening_hours: workingHours,
           status: "pending",
         })
         .select()
@@ -139,7 +172,6 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
 
       if (businessError) throw businessError
 
-      // Insert services
       if (services.length > 0 && business) {
         const serviceInserts = services.map((service) => ({
           business_id: business.id,
@@ -167,7 +199,6 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information */}
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="name" className="font-sans font-medium">
@@ -220,7 +251,6 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
             />
           </div>
 
-          {/* Contact Information */}
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="email" className="font-sans font-medium">
@@ -251,7 +281,6 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
 
           <ImageUpload images={images} defaultImage={defaultImage} onImagesChange={handleImagesChange} maxImages={5} />
 
-          {/* Category Selection */}
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label className="font-sans font-medium">Category *</Label>
@@ -294,7 +323,63 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
             </div>
           </div>
 
-          {/* Services */}
+          <div className="space-y-4">
+            <Label className="font-sans font-medium">Working Hours</Label>
+            <div className="grid gap-4">
+              {DAYS.map((day) => (
+                <div key={day.key} className="flex items-center gap-4">
+                  <div className="w-24 text-sm font-medium">{day.label}</div>
+                  <Select
+                    value={workingHours[day.key] === "closed" ? "closed" : "open"}
+                    onValueChange={(value) => {
+                      if (value === "closed") {
+                        handleHoursChange(day.key, "closed")
+                      } else {
+                        handleHoursChange(day.key, "09:00 - 17:00")
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-24">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="closed">Closed</SelectItem>
+                      <SelectItem value="open">Open</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {workingHours[day.key] !== "closed" && (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="text"
+                        placeholder="09:00"
+                        className="w-20"
+                        value={workingHours[day.key]?.split(" - ")[0] || ""}
+                        onChange={(e) => {
+                          const formatted = formatTimeInput(e.target.value)
+                          const endTime = workingHours[day.key]?.split(" - ")[1] || "17:00"
+                          handleHoursChange(day.key, `${formatted} - ${endTime}`)
+                        }}
+                      />
+                      <span>-</span>
+                      <Input
+                        type="text"
+                        placeholder="17:00"
+                        className="w-20"
+                        value={workingHours[day.key]?.split(" - ")[1] || ""}
+                        onChange={(e) => {
+                          const formatted = formatTimeInput(e.target.value)
+                          const startTime = workingHours[day.key]?.split(" - ")[0] || "09:00"
+                          handleHoursChange(day.key, `${startTime} - ${formatted}`)
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="space-y-4">
             <Label className="font-sans font-medium">Services Offered</Label>
 
@@ -327,7 +412,6 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
             )}
           </div>
 
-          {/* Submit */}
           <div className="flex justify-end space-x-4">
             <Button type="button" variant="outline" onClick={() => router.back()}>
               Cancel

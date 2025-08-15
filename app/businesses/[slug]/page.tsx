@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { BusinessHeader } from "@/components/business-header"
-import { BusinessInfo } from "@/components/business-info"
-import { BusinessReviews } from "@/components/business-reviews"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, Star, Phone, Navigation, Globe, MapPin, Clock, BarChart3 } from "lucide-react"
 import { notFound } from "next/navigation"
+import Link from "next/link"
+import Image from "next/image"
 
 async function getBusiness(slug: string) {
   const supabase = createClient()
@@ -45,6 +47,24 @@ async function getBusinessReviews(businessId: string) {
   return reviews || []
 }
 
+function calculateAverageRating(reviews: any[]) {
+  if (reviews.length === 0) return 0
+  const sum = reviews.reduce((acc, review) => acc + review.rating, 0)
+  return (sum / reviews.length).toFixed(1)
+}
+
+function formatOpeningHours(openingHours: any) {
+  if (!openingHours) return null
+
+  const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+  const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+  return days.map((day, index) => ({
+    day: dayNames[index],
+    hours: openingHours[day] || "Closed",
+  }))
+}
+
 export default async function BusinessPage({
   params,
 }: {
@@ -57,77 +77,271 @@ export default async function BusinessPage({
   }
 
   const reviews = await getBusinessReviews(business.id)
+  const averageRating = calculateAverageRating(reviews)
+  const formattedHours = formatOpeningHours(business.opening_hours)
+
+  const mainImage = business.images?.[0] || "/placeholder.svg?height=400&width=600"
+  const galleryImages = business.images?.slice(1, 5) || []
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       <Header />
 
-      <main>
-        <BusinessHeader business={business} />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Back to Directory */}
+        <Link href="/" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-6">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Directory
+        </Link>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Main Content */}
-            <div className="lg:col-span-2">
-              <BusinessInfo business={business} />
-              <BusinessReviews reviews={reviews} businessId={business.id} />
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Left Column - Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Image Gallery */}
+            <div className="bg-white rounded-lg overflow-hidden shadow-sm">
+              <div className="aspect-[4/3] relative">
+                <Image src={mainImage || "/placeholder.svg"} alt={business.name} fill className="object-cover" />
+              </div>
+
+              {/* Thumbnail Gallery */}
+              {galleryImages.length > 0 && (
+                <div className="p-4 flex gap-2">
+                  {galleryImages.map((image, index) => (
+                    <div key={index} className="w-16 h-16 relative rounded-lg overflow-hidden">
+                      <Image
+                        src={image || "/placeholder.svg"}
+                        alt={`${business.name} image ${index + 2}`}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Sidebar */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-8 space-y-6">
-                {/* Contact Card */}
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h3 className="font-serif font-semibold text-lg mb-4">Contact Information</h3>
-
-                  {business.phone && (
-                    <div className="mb-3">
-                      <span className="font-sans text-sm text-gray-600">Phone</span>
-                      <p className="font-sans font-medium">{business.phone}</p>
-                    </div>
-                  )}
-
-                  {business.email && (
-                    <div className="mb-3">
-                      <span className="font-sans text-sm text-gray-600">Email</span>
-                      <p className="font-sans font-medium">{business.email}</p>
-                    </div>
-                  )}
-
-                  {business.website && (
-                    <div className="mb-3">
-                      <span className="font-sans text-sm text-gray-600">Website</span>
-                      <a
-                        href={business.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-sans font-medium text-cyan-800 hover:underline"
-                      >
-                        Visit Website
-                      </a>
-                    </div>
-                  )}
-
-                  <div>
-                    <span className="font-sans text-sm text-gray-600">Address</span>
-                    <p className="font-sans font-medium">{business.address}</p>
+            {/* Business Details */}
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm text-blue-600 font-medium">{business.categories?.name}</span>
+                    {business.is_verified && <Badge className="bg-teal-600 text-white text-xs">Verified</Badge>}
                   </div>
-                </div>
-
-                {/* Opening Hours */}
-                {business.opening_hours && (
-                  <div className="bg-gray-50 rounded-lg p-6">
-                    <h3 className="font-serif font-semibold text-lg mb-4">Opening Hours</h3>
-                    <div className="space-y-2">
-                      {Object.entries(business.opening_hours as Record<string, string>).map(([day, hours]) => (
-                        <div key={day} className="flex justify-between">
-                          <span className="font-sans text-sm text-gray-600 capitalize">{day}</span>
-                          <span className="font-sans text-sm font-medium">{hours}</span>
-                        </div>
+                  <h1 className="text-2xl font-bold text-gray-900 mb-2">{business.name}</h1>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`h-4 w-4 ${
+                            star <= Math.floor(Number(averageRating))
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "text-gray-300"
+                          }`}
+                        />
                       ))}
                     </div>
+                    <span className="text-sm font-medium">{averageRating}</span>
+                    <span className="text-sm text-gray-500">({reviews.length} reviews)</span>
+                  </div>
+                </div>
+              </div>
+
+              {business.description && <p className="text-gray-600 mb-6">{business.description}</p>}
+
+              {/* Services & Offerings */}
+              {business.business_services && business.business_services.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-lg mb-3">Services & Offerings</h3>
+                  <ul className="space-y-1">
+                    {business.business_services.map((service: any, index: number) => (
+                      <li key={index} className="text-gray-600">
+                        • {service.service_name}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3">
+                {business.phone && (
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Phone className="h-4 w-4 mr-2" />
+                    Call Now
+                  </Button>
+                )}
+
+                <Button variant="outline" className="border-gray-300 bg-transparent">
+                  <Navigation className="h-4 w-4 mr-2" />
+                  Get Directions
+                </Button>
+
+                {business.website && (
+                  <Button variant="outline" className="border-gray-300 bg-transparent">
+                    <Globe className="h-4 w-4 mr-2" />
+                    Visit Website
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Location Map */}
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <h3 className="font-semibold text-lg mb-4">Location</h3>
+              <div className="aspect-[2/1] bg-gray-200 rounded-lg flex items-center justify-center">
+                <div className="text-center text-gray-500">
+                  <MapPin className="h-8 w-8 mx-auto mb-2" />
+                  <p>Map integration coming soon</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Customer Reviews */}
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <h3 className="font-semibold text-lg mb-4">Customer Reviews</h3>
+
+              {/* Write a Review */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-medium mb-3">Write a Review</h4>
+                <div className="mb-3">
+                  <span className="text-sm text-gray-600 block mb-2">Rating</span>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star key={star} className="h-5 w-5 text-gray-300 hover:text-yellow-400 cursor-pointer" />
+                    ))}
+                  </div>
+                </div>
+                <textarea
+                  placeholder="Share your experience with this business..."
+                  className="w-full p-3 border border-gray-300 rounded-lg resize-none"
+                  rows={3}
+                />
+                <Button className="mt-3 bg-blue-600 hover:bg-blue-700">Submit Review</Button>
+              </div>
+
+              {/* Reviews List */}
+              {reviews.length > 0 ? (
+                <div className="space-y-4">
+                  {reviews.map((review: any) => (
+                    <div key={review.id} className="border-b border-gray-200 pb-4 last:border-b-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`h-4 w-4 ${
+                                star <= review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="font-medium">{review.profiles?.full_name}</span>
+                        <span className="text-sm text-gray-500">
+                          {new Date(review.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-gray-600">{review.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-8">No reviews yet. Be the first to leave a review!</p>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column - Sidebar */}
+          <div className="space-y-6">
+            {/* Contact Information */}
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <h3 className="font-semibold text-lg mb-4">Contact Information</h3>
+
+              <div className="space-y-3">
+                <div>
+                  <span className="text-sm text-gray-500 block">Address</span>
+                  <p className="font-medium">{business.address}</p>
+                </div>
+
+                {business.phone && (
+                  <div>
+                    <span className="text-sm text-gray-500 block">Phone</span>
+                    <p className="font-medium text-blue-600">{business.phone}</p>
                   </div>
                 )}
+
+                {business.email && (
+                  <div>
+                    <span className="text-sm text-gray-500 block">Email</span>
+                    <p className="font-medium text-blue-600">{business.email}</p>
+                  </div>
+                )}
+
+                {business.website && (
+                  <div>
+                    <span className="text-sm text-gray-500 block">Website</span>
+                    <a
+                      href={business.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-blue-600 hover:underline"
+                    >
+                      Visit Website ↗
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Business Hours */}
+            {formattedHours && (
+              <div className="bg-white rounded-lg p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <Clock className="h-5 w-5 text-gray-600" />
+                  <h3 className="font-semibold text-lg">Business Hours</h3>
+                </div>
+
+                <div className="space-y-2">
+                  {formattedHours.map((dayInfo) => (
+                    <div key={dayInfo.day} className="flex justify-between">
+                      <span className="text-gray-600">{dayInfo.day}</span>
+                      <span className={`font-medium ${dayInfo.hours === "Closed" ? "text-red-600" : "text-green-600"}`}>
+                        {dayInfo.hours}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Business Statistics */}
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart3 className="h-5 w-5 text-gray-600" />
+                <h3 className="font-semibold text-lg">Business Statistics</h3>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Average Rating</span>
+                  <span className="font-medium">{averageRating}/5.0</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Total Reviews</span>
+                  <span className="font-medium">{reviews.length}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Member Since</span>
+                  <span className="font-medium">{new Date(business.created_at).getFullYear()}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Services Offered</span>
+                  <span className="font-medium">{business.business_services?.length || 0}</span>
+                </div>
               </div>
             </div>
           </div>
