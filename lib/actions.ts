@@ -4,6 +4,32 @@ import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
+export async function signInWithGoogle() {
+  const cookieStore = cookies()
+  const supabase = createServerActionClient({ cookies: () => cookieStore })
+
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      console.error("Google sign-in error:", error)
+      return { error: error.message }
+    }
+
+    if (data.url) {
+      redirect(data.url)
+    }
+  } catch (error) {
+    console.error("Google sign-in error:", error)
+    return { error: "An unexpected error occurred. Please try again." }
+  }
+}
+
 // Update the signIn function to handle redirects properly
 export async function signIn(prevState: any, formData: FormData) {
   // Check if formData is valid
