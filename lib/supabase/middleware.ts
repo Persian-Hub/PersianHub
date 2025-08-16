@@ -20,7 +20,7 @@ export async function updateSession(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
 
-  if (code) {
+  if (code && !requestUrl.pathname.startsWith("/auth/callback")) {
     console.log("[v0] Middleware: OAuth code detected, redirecting to callback route...")
     return NextResponse.redirect(new URL(`/auth/callback?code=${code}`, request.url))
   }
