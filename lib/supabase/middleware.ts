@@ -16,45 +16,13 @@ export async function updateSession(request: NextRequest) {
     })
   }
 
-  let res = NextResponse.next()
+  const res = NextResponse.next()
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
 
   if (code) {
-    console.log("[v0] Middleware: OAuth code detected, exchanging for session...")
-
-    // Create a Supabase client configured to use cookies
-    const supabase = createMiddlewareClient({ req: request, res })
-
-    try {
-      // Exchange the code for a session
-      const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-
-      if (error) {
-        console.log("[v0] Middleware: Session exchange error:", error)
-        // Redirect to callback route as fallback
-        return NextResponse.redirect(new URL(`/auth/callback?code=${code}`, request.url))
-      }
-
-      console.log("[v0] Middleware: Session created successfully:", {
-        user: data.user?.email,
-        session: !!data.session,
-      })
-
-      // Clean up the URL and redirect to home page
-      const cleanUrl = new URL("/", request.url)
-      res = NextResponse.redirect(cleanUrl)
-
-      // Ensure cookies are set in the response
-      const supabaseResponse = createMiddlewareClient({ req: request, res })
-      await supabaseResponse.auth.getSession() // This ensures cookies are properly set
-
-      return res
-    } catch (error) {
-      console.log("[v0] Middleware: OAuth exchange failed:", error)
-      // Fallback to callback route
-      return NextResponse.redirect(new URL(`/auth/callback?code=${code}`, request.url))
-    }
+    console.log("[v0] Middleware: OAuth code detected, redirecting to callback route...")
+    return NextResponse.redirect(new URL(`/auth/callback?code=${code}`, request.url))
   }
 
   // Create a Supabase client configured to use cookies

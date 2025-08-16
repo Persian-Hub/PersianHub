@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       const cookieStore = cookies()
       const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
 
-      console.log("[v0] Callback: Exchanging code for session (backup)...")
+      console.log("[v0] Callback: Exchanging code for session...")
       const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
       if (exchangeError) {
@@ -37,8 +37,19 @@ export async function GET(request: NextRequest) {
         session: !!data.session,
       })
 
-      const cleanUrl = new URL(next, request.url)
-      return NextResponse.redirect(cleanUrl)
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData.session) {
+        console.log("[v0] Callback: Session verification failed")
+        return NextResponse.redirect(new URL("/auth/login?error=session_verification_failed", request.url))
+      }
+
+      console.log("[v0] Callback: Session verified, redirecting to:", next)
+
+      const response = NextResponse.redirect(new URL(next, request.url))
+
+      response.headers.set("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate")
+
+      return response
     } catch (error) {
       console.log("[v0] Callback: error:", error)
       return NextResponse.redirect(new URL("/auth/login?error=callback_error", request.url))
