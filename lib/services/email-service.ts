@@ -1,6 +1,6 @@
 import "server-only"
 import nodemailer from "nodemailer"
-import { supabaseAdmin } from "@/lib/supabaseAdmin"
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin"
 
 type SendArgs = {
   to: string[]
@@ -40,6 +40,8 @@ export async function sendEmail(args: SendArgs) {
     templateKey,
     metadata = {},
   } = args
+
+  const supabaseAdmin = getSupabaseAdmin()
 
   // 1) Insert queued row
   const { data: queued, error: qErr } = await supabaseAdmin
