@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { signIn, signInWithGoogle } from "@/lib/actions"
 
 function SubmitButton() {
@@ -33,16 +33,28 @@ function SubmitButton() {
 }
 
 function GoogleSignInButton() {
-  const { pending } = useFormStatus()
+  const [isPending, setIsPending] = useState(false)
+
+  const handleGoogleSignIn = async () => {
+    setIsPending(true)
+    try {
+      await signInWithGoogle()
+    } catch (error) {
+      console.error("Google sign-in failed:", error)
+    } finally {
+      setIsPending(false)
+    }
+  }
 
   return (
     <Button
-      formAction={signInWithGoogle}
-      disabled={pending}
+      type="button"
+      onClick={handleGoogleSignIn}
+      disabled={isPending}
       variant="outline"
       className="w-full py-6 text-lg font-medium rounded-lg h-[60px] border-gray-300 hover:bg-gray-50 bg-transparent"
     >
-      {pending ? (
+      {isPending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Signing in...
@@ -98,7 +110,7 @@ export function LoginForm() {
       </CardHeader>
 
       <CardContent>
-        <form action={formAction} className="space-y-6">
+        <div className="space-y-6">
           {state?.error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg font-sans text-sm">
               {state.error}
@@ -116,22 +128,24 @@ export function LoginForm() {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 font-sans">
-                Email
-              </label>
-              <Input id="email" name="email" type="email" placeholder="you@example.com" required className="h-12" />
+          <form action={formAction} className="space-y-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 font-sans">
+                  Email
+                </label>
+                <Input id="email" name="email" type="email" placeholder="you@example.com" required className="h-12" />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 font-sans">
+                  Password
+                </label>
+                <Input id="password" name="password" type="password" required className="h-12" />
+              </div>
             </div>
-            <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 font-sans">
-                Password
-              </label>
-              <Input id="password" name="password" type="password" required className="h-12" />
-            </div>
-          </div>
 
-          <SubmitButton />
+            <SubmitButton />
+          </form>
 
           <div className="text-center text-gray-600 font-sans">
             Don't have an account?{" "}
@@ -139,7 +153,7 @@ export function LoginForm() {
               Sign up
             </Link>
           </div>
-        </form>
+        </div>
       </CardContent>
     </Card>
   )
