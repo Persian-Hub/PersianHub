@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import { signUp } from "@/lib/actions"
@@ -78,11 +79,11 @@ function GoogleSignUpButton() {
             />
             <path
               fill="currentColor"
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
             />
             <path
               fill="currentColor"
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
             />
             <path
               fill="currentColor"
@@ -98,6 +99,7 @@ function GoogleSignUpButton() {
 
 export function SignUpForm() {
   const [state, formAction] = useActionState(signUp, null)
+  const [countryCode, setCountryCode] = useState("+61")
 
   return (
     <Card className="w-full max-w-md">
@@ -157,6 +159,45 @@ export function SignUpForm() {
                   Email
                 </label>
                 <Input id="email" name="email" type="email" placeholder="you@example.com" required className="h-12" />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 font-sans">
+                  Phone Number
+                </label>
+                <div className="flex gap-2">
+                  <Select value={countryCode} onValueChange={setCountryCode}>
+                    <SelectTrigger className="w-32 h-12">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="+61">🇦🇺 +61</SelectItem>
+                      <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                      <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                      <SelectItem value="+33">🇫🇷 +33</SelectItem>
+                      <SelectItem value="+49">🇩🇪 +49</SelectItem>
+                      <SelectItem value="+39">🇮🇹 +39</SelectItem>
+                      <SelectItem value="+34">🇪🇸 +34</SelectItem>
+                      <SelectItem value="+31">🇳🇱 +31</SelectItem>
+                      <SelectItem value="+46">🇸🇪 +46</SelectItem>
+                      <SelectItem value="+47">🇳🇴 +47</SelectItem>
+                      <SelectItem value="+45">🇩🇰 +45</SelectItem>
+                      <SelectItem value="+41">🇨🇭 +41</SelectItem>
+                      <SelectItem value="+43">🇦🇹 +43</SelectItem>
+                      <SelectItem value="+32">🇧🇪 +32</SelectItem>
+                      <SelectItem value="+98">🇮🇷 +98</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    placeholder="412 345 678"
+                    required
+                    className="flex-1 h-12"
+                  />
+                  <input type="hidden" name="countryCode" value={countryCode} />
+                </div>
               </div>
 
               <div className="space-y-2">

@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -16,31 +16,14 @@ import {
   ArrowLeft,
   LogOut,
   Search,
+  Bell,
+  Settings,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
-
-const navigation = [
-  {
-    name: "Main",
-    items: [{ name: "Dashboard", href: "/admin", icon: LayoutDashboard }],
-  },
-  {
-    name: "Content Review",
-    items: [
-      { name: "Pending Businesses", href: "/admin/businesses?status=pending", icon: Clock },
-      { name: "Pending Reviews", href: "/admin/reviews?status=pending", icon: MessageSquare },
-    ],
-  },
-  {
-    name: "Management",
-    items: [
-      { name: "All Businesses", href: "/admin/businesses", icon: Building2, badge: "1" },
-      { name: "Users", href: "/admin/users", icon: Users, badge: "1" },
-      { name: "All Reviews", href: "/admin/reviews", icon: Star, badge: "0" },
-      { name: "Categories", href: "/admin/categories", icon: Tag, badge: "9" },
-    ],
-  },
-]
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { supabase } from "@/lib/supabase/client"
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -51,20 +34,109 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children, title, searchPlaceholder, actions }: AdminLayoutProps) {
   const pathname = usePathname()
+  const [counts, setCounts] = useState({
+    businesses: 0,
+    pendingBusinesses: 0,
+    users: 0,
+    reviews: 0,
+    pendingReviews: 0,
+    categories: 0,
+  })
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const [
+          businessesResult,
+          pendingBusinessesResult,
+          usersResult,
+          reviewsResult,
+          pendingReviewsResult,
+          categoriesResult,
+        ] = await Promise.all([
+          supabase.from("businesses").select("*", { count: "exact", head: true }),
+          supabase.from("businesses").select("*", { count: "exact", head: true }).eq("status", "pending"),
+          supabase.from("profiles").select("*", { count: "exact", head: true }),
+          supabase.from("reviews").select("*", { count: "exact", head: true }),
+          supabase.from("reviews").select("*", { count: "exact", head: true }).eq("status", "pending"),
+          supabase.from("categories").select("*", { count: "exact", head: true }),
+        ])
+
+        setCounts({
+          businesses: businessesResult.count || 0,
+          pendingBusinesses: pendingBusinessesResult.count || 0,
+          users: usersResult.count || 0,
+          reviews: reviewsResult.count || 0,
+          pendingReviews: pendingReviewsResult.count || 0,
+          categories: categoriesResult.count || 0,
+        })
+      } catch (error) {
+        console.error("Error fetching admin counts:", error)
+      }
+    }
+
+    fetchCounts()
+  }, [])
+
+  const navigation = [
+    {
+      name: "Main",
+      items: [{ name: "Dashboard", href: "/admin", icon: LayoutDashboard }],
+    },
+    {
+      name: "Content Review",
+      items: [
+        {
+          name: "Pending Businesses",
+          href: "/admin/pending-businesses",
+          icon: Clock,
+          badge: counts.pendingBusinesses > 0 ? counts.pendingBusinesses.toString() : undefined,
+          urgent: counts.pendingBusinesses > 0,
+        },
+        {
+          name: "Pending Reviews",
+          href: "/admin/pending-reviews",
+          icon: MessageSquare,
+          badge: counts.pendingReviews > 0 ? counts.pendingReviews.toString() : undefined,
+          urgent: counts.pendingReviews > 0,
+        },
+      ],
+    },
+    {
+      name: "Management",
+      items: [
+        { name: "All Businesses", href: "/admin/businesses", icon: Building2, badge: counts.businesses.toString() },
+        { name: "Users", href: "/admin/users", icon: Users, badge: counts.users.toString() },
+        { name: "All Reviews", href: "/admin/reviews", icon: Star, badge: counts.reviews.toString() },
+        { name: "Categories", href: "/admin/categories", icon: Tag, badge: counts.categories.toString() },
+      ],
+    },
+  ]
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900">Persian Hub Admin</h2>
+    <div className="flex h-screen bg-muted/30">
+      <div className="w-72 bg-sidebar border-r border-sidebar-border flex flex-col shadow-lg">
+        {/* Sidebar Header */}
+        <div className="p-6 border-b border-sidebar-border/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-sidebar-primary rounded-lg flex items-center justify-center">
+              <span className="text-sidebar-primary-foreground font-bold text-lg">PH</span>
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-sidebar-foreground font-serif">Persian Hub</h2>
+              <p className="text-sm text-sidebar-foreground/70 font-sans">Admin Panel</p>
+            </div>
+          </div>
         </div>
 
-        <nav className="flex-1 px-4 space-y-8">
+        {/* Navigation */}
+        <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto">
           {navigation.map((section) => (
             <div key={section.name}>
-              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">{section.name}</h3>
-              <div className="space-y-1">
+              <h3 className="text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider mb-4 font-sans">
+                {section.name}
+              </h3>
+              <div className="space-y-2">
                 {section.items.map((item) => {
                   const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href))
 
@@ -73,26 +145,35 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
                       key={item.name}
                       href={item.href}
                       className={cn(
-                        "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                        isActive ? "bg-blue-50 text-blue-700" : "text-gray-700 hover:bg-gray-50 hover:text-gray-900",
+                        "group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200",
+                        isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
+                          : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                       )}
                     >
                       <item.icon
                         className={cn(
-                          "mr-3 h-5 w-5 flex-shrink-0",
-                          isActive ? "text-blue-500" : "text-gray-400 group-hover:text-gray-500",
+                          "mr-3 h-5 w-5 flex-shrink-0 transition-colors",
+                          isActive
+                            ? "text-sidebar-primary-foreground"
+                            : "text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground",
                         )}
                       />
-                      <span className="flex-1">{item.name}</span>
+                      <span className="flex-1 font-sans">{item.name}</span>
                       {item.badge && (
-                        <span
+                        <Badge
+                          variant={item.urgent ? "destructive" : "secondary"}
                           className={cn(
-                            "ml-3 inline-block py-0.5 px-2 text-xs rounded-full",
-                            isActive ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-600",
+                            "ml-3 text-xs font-medium",
+                            isActive
+                              ? "bg-sidebar-primary-foreground/20 text-sidebar-primary-foreground"
+                              : item.urgent
+                                ? "bg-destructive text-destructive-foreground animate-pulse"
+                                : "bg-sidebar-accent text-sidebar-accent-foreground",
                           )}
                         >
                           {item.badge}
-                        </span>
+                        </Badge>
                       )}
                     </Link>
                   )
@@ -102,16 +183,17 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
           ))}
         </nav>
 
-        <div className="p-4 border-t border-gray-200 space-y-2">
+        {/* Sidebar Footer */}
+        <div className="p-4 border-t border-sidebar-border/50 space-y-2">
           <Link
             href="/"
-            className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-50"
+            className="flex items-center px-4 py-3 text-sm font-medium text-sidebar-foreground/80 rounded-xl hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors font-sans"
           >
-            <ArrowLeft className="mr-3 h-5 w-5 text-gray-400" />
+            <ArrowLeft className="mr-3 h-5 w-5 text-sidebar-foreground/60" />
             Back to Directory
           </Link>
-          <button className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-50">
-            <LogOut className="mr-3 h-5 w-5 text-gray-400" />
+          <button className="flex items-center w-full px-4 py-3 text-sm font-medium text-sidebar-foreground/80 rounded-xl hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors font-sans">
+            <LogOut className="mr-3 h-5 w-5 text-sidebar-foreground/60" />
             Logout
           </button>
         </div>
@@ -119,24 +201,50 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <header className="bg-card border-b border-border px-6 py-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-gray-900">{title}</h1>
-            <div className="flex items-center space-x-4">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground font-serif">{title}</h1>
+              <p className="text-sm text-muted-foreground font-sans mt-1">Manage your Persian Hub platform</p>
+            </div>
+
+            <div className="flex items-center gap-4">
               {searchPlaceholder && (
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input placeholder={searchPlaceholder} className="pl-10 w-80" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={searchPlaceholder}
+                    className="pl-10 w-80 bg-input border-border focus:ring-ring font-sans"
+                  />
                 </div>
               )}
+
+              <Button variant="ghost" size="sm" className="relative">
+                <Bell className="h-5 w-5" />
+                {counts.pendingBusinesses + counts.pendingReviews > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-destructive text-destructive-foreground text-xs">
+                    {counts.pendingBusinesses + counts.pendingReviews}
+                  </Badge>
+                )}
+              </Button>
+
+              <Button variant="ghost" size="sm">
+                <Settings className="h-5 w-5" />
+              </Button>
+
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-primary text-primary-foreground font-medium">A</AvatarFallback>
+              </Avatar>
+
               {actions}
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-6">{children}</div>
+        {/* Content Area */}
+        <main className="flex-1 overflow-auto bg-background">
+          <div className="p-6">{children}</div>
+        </main>
       </div>
     </div>
   )

@@ -21,14 +21,15 @@ async function getBusinesses() {
     redirect("/")
   }
 
-  // Get all businesses with owner and category info
+  // Get all businesses with owner, category info, and images
   const { data: businesses } = await supabase
     .from("businesses")
     .select(`
       *,
       profiles!owner_id(full_name, email),
       categories(name),
-      subcategories(name)
+      subcategories(name),
+      images
     `)
     .order("created_at", { ascending: false })
 

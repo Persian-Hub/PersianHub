@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Users, Clock, Star, Building2, MessageSquare, Plus, UserPlus } from "lucide-react"
+import Link from "next/link"
 
 async function getAdminData() {
   const supabase = await createClient()
@@ -99,21 +100,25 @@ export default async function AdminDashboard() {
   ]
 
   return (
-    <AdminLayout>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+    <AdminLayout
+      title="Dashboard"
+      actions={
         <div className="flex gap-3">
-          <Button className="bg-green-600 hover:bg-green-700 text-white">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Business
-          </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-            <UserPlus className="h-4 w-4 mr-2" />
-            Add User
-          </Button>
+          <Link href="/dashboard/add-business">
+            <Button className="bg-green-600 hover:bg-green-700 text-white">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Business
+            </Button>
+          </Link>
+          <Link href="/admin/users/add">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add User
+            </Button>
+          </Link>
         </div>
-      </div>
-
+      }
+    >
       {/* Stats Cards */}
       <div className="grid grid-cols-5 gap-6 mb-8">
         {statsCards.map((stat) => (
