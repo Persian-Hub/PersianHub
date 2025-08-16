@@ -3,6 +3,8 @@ import type { Metadata } from "next"
 import { Montserrat, Open_Sans } from "next/font/google"
 import "./globals.css"
 
+export const runtime = "nodejs"
+
 const montserrat = Montserrat({
   subsets: ["latin"],
   display: "swap",
