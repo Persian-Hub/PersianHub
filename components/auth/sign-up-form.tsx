@@ -8,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
-import { signUp, signInWithGoogle } from "@/lib/actions"
+import { signUp } from "@/lib/actions"
 import { useState } from "react"
+import { supabase } from "@/lib/supabase/client"
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -38,7 +39,16 @@ function GoogleSignUpButton() {
   const handleGoogleSignUp = async () => {
     setIsPending(true)
     try {
-      await signInWithGoogle()
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+
+      if (error) {
+        console.error("Google sign-up failed:", error)
+      }
     } catch (error) {
       console.error("Google sign-up failed:", error)
     } finally {

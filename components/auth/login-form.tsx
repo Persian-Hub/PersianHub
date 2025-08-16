@@ -9,7 +9,8 @@ import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { signIn, signInWithGoogle } from "@/lib/actions"
+import { signIn } from "@/lib/actions"
+import { supabase } from "@/lib/supabase/client"
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -38,7 +39,16 @@ function GoogleSignInButton() {
   const handleGoogleSignIn = async () => {
     setIsPending(true)
     try {
-      await signInWithGoogle()
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+
+      if (error) {
+        console.error("Google sign-in failed:", error)
+      }
     } catch (error) {
       console.error("Google sign-in failed:", error)
     } finally {
