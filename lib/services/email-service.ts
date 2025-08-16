@@ -178,7 +178,14 @@ class EmailService {
 
   async sendEmail(emailData: EmailData, htmlBody: string, textBody?: string): Promise<boolean> {
     if (this.emailDisabled) {
-      console.log("[EmailService] Email disabled in v0 environment. Skipping email send.")
+      console.log("[EmailService] Email disabled in v0 environment. Logging as cancelled.")
+      await this.logEmail(emailData, {
+        status: "cancelled",
+        error_code: "ENVIRONMENT_DISABLED",
+        error_message: "Email sending disabled in v0/preview environment",
+        body_html: htmlBody,
+        body_text: textBody,
+      })
       return true // Return true to not break the flow
     }
 
@@ -188,6 +195,8 @@ class EmailService {
         status: "failed",
         error_code: "SMTP_NOT_CONFIGURED",
         error_message: "SMTP transporter not initialized",
+        body_html: htmlBody,
+        body_text: textBody,
       })
       return false
     }
