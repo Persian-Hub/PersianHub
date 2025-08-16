@@ -17,7 +17,7 @@ interface Business {
   is_sponsored: boolean
   categories?: { name: string; slug: string }
   subcategories?: { name: string; slug: string }
-  opening_hours?: Record<string, string>
+  opening_hours?: Record<string, any>
   phone?: string
   services?: string[]
   distance?: number
@@ -36,17 +36,38 @@ export function BusinessCard({ business }: BusinessCardProps) {
   const avgRating = business.avg_rating || 0
   const reviewCount = business.review_count || 0
 
-  const distance = business.distance ? `${business.distance.toFixed(1)} km away` : "Distance unavailable"
+  const distanceDisplay =
+    business.distance !== undefined && business.distance < 999 ? `${business.distance.toFixed(1)} km away` : null
 
   const getCurrentDayHours = () => {
     if (!business.opening_hours) return null
-    const dayKey = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][new Date().getDay()]
-    return business.opening_hours[dayKey]
+
+    const dayMapping = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+    const dayKey = dayMapping[new Date().getDay()]
+    const dayData = business.opening_hours[dayKey]
+
+    if (!dayData) return null
+
+    if (typeof dayData === "string") {
+      return dayData === "closed" ? "Closed" : dayData
+    } else if (typeof dayData === "object") {
+      if (dayData.is_closed === false || dayData.isClosed === false) {
+        if (dayData.open && dayData.close) {
+          return `${dayData.open} - ${dayData.close}`
+        } else if (dayData.openTime && dayData.closeTime) {
+          return `${dayData.openTime} - ${dayData.closeTime}`
+        }
+      } else if (dayData.hours && dayData.hours !== "closed") {
+        return dayData.hours
+      }
+    }
+
+    return "Closed"
   }
 
   const todayHours = getCurrentDayHours()
-  const isOpen = todayHours && todayHours !== "closed"
-  const hoursDisplay = todayHours === "closed" ? "Closed" : todayHours || "Hours not available"
+  const isOpen = todayHours && todayHours !== "Closed"
+  const hoursDisplay = todayHours || "Hours not available"
 
   const handleDirections = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -108,12 +129,15 @@ export function BusinessCard({ business }: BusinessCardProps) {
 
           <div className="flex items-start space-x-2">
             <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-            <span className="text-sm text-gray-600">{business.address}</span>
+            <div className="flex-1">
+              <span className="text-sm text-gray-600 block">{business.address}</span>
+              {distanceDisplay && <span className="text-xs text-blue-600 font-medium">{distanceDisplay}</span>}
+            </div>
           </div>
 
           <div className="flex items-center space-x-2">
             <Clock className="h-4 w-4 text-gray-400" />
-            <span className="text-sm text-gray-600">{hoursDisplay}</span>
+            <span className={`text-sm ${isOpen ? "text-green-600" : "text-red-600"} font-medium`}>{hoursDisplay}</span>
           </div>
 
           <div className="space-y-2 pt-2">

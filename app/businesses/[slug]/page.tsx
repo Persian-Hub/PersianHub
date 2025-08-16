@@ -1,12 +1,13 @@
 import { createClient } from "@/lib/supabase/server"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Star, Phone, Navigation, Globe, MapPin, Clock, BarChart3 } from "lucide-react"
+import { ArrowLeft, Star, Clock, BarChart3 } from "lucide-react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import Image from "next/image"
+import { GoogleMap } from "@/components/ui/google-map"
+import { ImageGallery } from "@/components/ui/image-gallery"
+import { BusinessActions } from "@/components/business-actions"
 
 async function getBusiness(slug: string) {
   const supabase = createClient()
@@ -54,15 +55,51 @@ function calculateAverageRating(reviews: any[]) {
 }
 
 function formatOpeningHours(openingHours: any) {
-  if (!openingHours) return null
+  console.log("[v0] Opening hours data:", openingHours)
 
-  const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-  const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+  if (!openingHours || typeof openingHours !== "object") return null
 
-  return days.map((day, index) => ({
-    day: dayNames[index],
-    hours: openingHours[day] || "Closed",
-  }))
+  const dayMapping = {
+    mon: "Monday",
+    tue: "Tuesday",
+    wed: "Wednesday",
+    thu: "Thursday",
+    fri: "Friday",
+    sat: "Saturday",
+    sun: "Sunday",
+  }
+
+  const abbreviatedDays = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
+  return abbreviatedDays.map((abbrevDay) => {
+    const dayData = openingHours[abbrevDay]
+    console.log(`[v0] ${abbrevDay} data:`, dayData)
+
+    let hours = "Closed"
+
+    if (dayData) {
+      if (typeof dayData === "string") {
+        hours = dayData === "closed" ? "Closed" : dayData
+      } else if (typeof dayData === "object") {
+        if (dayData.is_closed === false || dayData.isClosed === false) {
+          if (dayData.open && dayData.close) {
+            hours = `${dayData.open} - ${dayData.close}`
+          } else if (dayData.openTime && dayData.closeTime) {
+            hours = `${dayData.openTime} - ${dayData.closeTime}`
+          }
+        } else if (!dayData.is_closed && !dayData.isClosed && dayData.open && dayData.close) {
+          hours = `${dayData.open} - ${dayData.close}`
+        } else if (dayData.hours && dayData.hours !== "closed") {
+          hours = dayData.hours
+        }
+      }
+    }
+
+    return {
+      day: dayMapping[abbrevDay as keyof typeof dayMapping],
+      hours: hours,
+    }
+  })
 }
 
 export default async function BusinessPage({
@@ -80,9 +117,6 @@ export default async function BusinessPage({
   const averageRating = calculateAverageRating(reviews)
   const formattedHours = formatOpeningHours(business.opening_hours)
 
-  const mainImage = business.images?.[0] || "/placeholder.svg?height=400&width=600"
-  const galleryImages = business.images?.slice(1, 5) || []
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -97,28 +131,7 @@ export default async function BusinessPage({
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Image Gallery */}
-            <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-              <div className="aspect-[4/3] relative">
-                <Image src={mainImage || "/placeholder.svg"} alt={business.name} fill className="object-cover" />
-              </div>
-
-              {/* Thumbnail Gallery */}
-              {galleryImages.length > 0 && (
-                <div className="p-4 flex gap-2">
-                  {galleryImages.map((image, index) => (
-                    <div key={index} className="w-16 h-16 relative rounded-lg overflow-hidden">
-                      <Image
-                        src={image || "/placeholder.svg"}
-                        alt={`${business.name} image ${index + 2}`}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <ImageGallery images={business.images || []} businessName={business.name} />
 
             {/* Business Details */}
             <div className="bg-white rounded-lg p-6 shadow-sm">
@@ -164,39 +177,28 @@ export default async function BusinessPage({
                 </div>
               )}
 
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-3">
-                {business.phone && (
-                  <Button className="bg-blue-600 hover:bg-blue-700">
-                    <Phone className="h-4 w-4 mr-2" />
-                    Call Now
-                  </Button>
-                )}
-
-                <Button variant="outline" className="border-gray-300 bg-transparent">
-                  <Navigation className="h-4 w-4 mr-2" />
-                  Get Directions
-                </Button>
-
-                {business.website && (
-                  <Button variant="outline" className="border-gray-300 bg-transparent">
-                    <Globe className="h-4 w-4 mr-2" />
-                    Visit Website
-                  </Button>
-                )}
-              </div>
+              {/* Business Actions */}
+              <BusinessActions
+                phone={business.phone}
+                website={business.website}
+                latitude={business.latitude}
+                longitude={business.longitude}
+                address={business.address}
+              />
             </div>
 
             {/* Location Map */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h3 className="font-semibold text-lg mb-4">Location</h3>
-              <div className="aspect-[2/1] bg-gray-200 rounded-lg flex items-center justify-center">
-                <div className="text-center text-gray-500">
-                  <MapPin className="h-8 w-8 mx-auto mb-2" />
-                  <p>Map integration coming soon</p>
-                </div>
+            {business.latitude && business.longitude && (
+              <div className="bg-white rounded-lg p-6 shadow-sm">
+                <h3 className="font-semibold text-lg mb-4">Location</h3>
+                <GoogleMap
+                  latitude={business.latitude}
+                  longitude={business.longitude}
+                  businessName={business.name}
+                  address={business.address}
+                />
               </div>
-            </div>
+            )}
 
             {/* Customer Reviews */}
             <div className="bg-white rounded-lg p-6 shadow-sm">
@@ -218,7 +220,9 @@ export default async function BusinessPage({
                   className="w-full p-3 border border-gray-300 rounded-lg resize-none"
                   rows={3}
                 />
-                <Button className="mt-3 bg-blue-600 hover:bg-blue-700">Submit Review</Button>
+                <button className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                  Submit Review
+                </button>
               </div>
 
               {/* Reviews List */}

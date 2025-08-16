@@ -19,7 +19,7 @@ interface Business {
   is_sponsored: boolean
   categories?: { name: string }
   subcategories?: { name: string }
-  opening_hours?: Record<string, string>
+  opening_hours?: Record<string, any>
   phone?: string
   services?: string[]
   distance?: number
@@ -49,6 +49,11 @@ export function BusinessListings() {
 
   const fetchBusinesses = async () => {
     const supabase = createClient()
+
+    if (!supabase) {
+      console.error("Failed to create Supabase client")
+      return []
+    }
 
     try {
       const { data: businessData, error } = await supabase
@@ -99,6 +104,7 @@ export function BusinessListings() {
         const { latitude, longitude } = position.coords
         setUserLocation({ lat: latitude, lng: longitude })
         setLocationPermission("granted")
+        console.log("[v0] User location obtained:", { latitude, longitude })
       },
       (error) => {
         console.log("Error getting location:", error)
@@ -118,7 +124,6 @@ export function BusinessListings() {
       const businessData = await fetchBusinesses()
 
       if (userLocation && businessData.length > 0) {
-        // Calculate distances and sort by distance
         const businessesWithDistance = businessData.map((business) => {
           if (business.latitude && business.longitude && !isNaN(business.latitude) && !isNaN(business.longitude)) {
             const distance = calculateDistance(
@@ -127,8 +132,10 @@ export function BusinessListings() {
               business.latitude,
               business.longitude,
             )
+            console.log(`[v0] Distance to ${business.name}: ${distance.toFixed(1)}km`)
             return { ...business, distance: Math.round(distance * 10) / 10 } // Round to 1 decimal place
           }
+          console.log(`[v0] No coordinates for ${business.name}`)
           return { ...business, distance: 999 } // Put businesses without coordinates at the end
         })
 
