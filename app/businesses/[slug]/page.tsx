@@ -8,6 +8,7 @@ import Link from "next/link"
 import { GoogleMap } from "@/components/ui/google-map"
 import { ImageGallery } from "@/components/ui/image-gallery"
 import { BusinessActions } from "@/components/business-actions"
+import { ReviewForm } from "@/components/review-form"
 
 async function getBusiness(slug: string) {
   const supabase = createClient()
@@ -204,25 +205,8 @@ export default async function BusinessPage({
             <div className="bg-white rounded-lg p-6 shadow-sm">
               <h3 className="font-semibold text-lg mb-4">Customer Reviews</h3>
 
-              {/* Write a Review */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-medium mb-3">Write a Review</h4>
-                <div className="mb-3">
-                  <span className="text-sm text-gray-600 block mb-2">Rating</span>
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star key={star} className="h-5 w-5 text-gray-300 hover:text-yellow-400 cursor-pointer" />
-                    ))}
-                  </div>
-                </div>
-                <textarea
-                  placeholder="Share your experience with this business..."
-                  className="w-full p-3 border border-gray-300 rounded-lg resize-none"
-                  rows={3}
-                />
-                <button className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                  Submit Review
-                </button>
+              <div className="mb-6">
+                <ReviewForm businessId={business.id} />
               </div>
 
               {/* Reviews List */}

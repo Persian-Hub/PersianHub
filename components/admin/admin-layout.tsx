@@ -23,6 +23,14 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { supabase } from "@/lib/supabase/client"
 
 interface AdminLayoutProps {
@@ -41,6 +49,13 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
     reviews: 0,
     pendingReviews: 0,
     categories: 0,
+  })
+  const [pendingItems, setPendingItems] = useState<{
+    businesses: Array<{ id: string; name: string; created_at: string }>
+    reviews: Array<{ id: string; business_name: string; rating: number; created_at: string }>
+  }>({
+    businesses: [],
+    reviews: [],
   })
 
   useEffect(() => {
@@ -69,6 +84,31 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
           reviews: reviewsResult.count || 0,
           pendingReviews: pendingReviewsResult.count || 0,
           categories: categoriesResult.count || 0,
+        })
+
+        const [pendingBusinessesData, pendingReviewsData] = await Promise.all([
+          supabase
+            .from("businesses")
+            .select("id, name, created_at")
+            .eq("status", "pending")
+            .order("created_at", { ascending: false })
+            .limit(5),
+          supabase
+            .from("reviews")
+            .select("id, rating, created_at, businesses(name)")
+            .eq("status", "pending")
+            .order("created_at", { ascending: false })
+            .limit(5),
+        ])
+
+        setPendingItems({
+          businesses: pendingBusinessesData.data || [],
+          reviews: (pendingReviewsData.data || []).map((review) => ({
+            id: review.id,
+            business_name: (review.businesses as any)?.name || "Unknown Business",
+            rating: review.rating,
+            created_at: review.created_at,
+          })),
         })
       } catch (error) {
         console.error("Error fetching admin counts:", error)
@@ -116,7 +156,6 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
   return (
     <div className="flex h-screen bg-muted/30">
       <div className="w-72 bg-sidebar border-r border-sidebar-border flex flex-col shadow-lg">
-        {/* Sidebar Header */}
         <div className="p-6 border-b border-sidebar-border/50">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-sidebar-primary rounded-lg flex items-center justify-center">
@@ -129,7 +168,6 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
           </div>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto">
           {navigation.map((section) => (
             <div key={section.name}>
@@ -183,7 +221,6 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
           ))}
         </nav>
 
-        {/* Sidebar Footer */}
         <div className="p-4 border-t border-sidebar-border/50 space-y-2">
           <Link
             href="/"
@@ -199,7 +236,6 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-card border-b border-border px-6 py-4 shadow-sm">
           <div className="flex items-center justify-between">
@@ -219,14 +255,94 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
                 </div>
               )}
 
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="h-5 w-5" />
-                {counts.pendingBusinesses + counts.pendingReviews > 0 && (
-                  <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-destructive text-destructive-foreground text-xs">
-                    {counts.pendingBusinesses + counts.pendingReviews}
-                  </Badge>
-                )}
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="relative">
+                    <Bell className="h-5 w-5" />
+                    {counts.pendingBusinesses + counts.pendingReviews > 0 && (
+                      <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-destructive text-destructive-foreground text-xs">
+                        {counts.pendingBusinesses + counts.pendingReviews}
+                      </Badge>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <DropdownMenuLabel className="font-semibold">Notifications</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+
+                  {counts.pendingBusinesses === 0 && counts.pendingReviews === 0 ? (
+                    <DropdownMenuItem disabled className="text-center py-4">
+                      <span className="text-muted-foreground">No pending items</span>
+                    </DropdownMenuItem>
+                  ) : (
+                    <>
+                      {pendingItems.businesses.length > 0 && (
+                        <>
+                          <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">
+                            Pending Businesses ({counts.pendingBusinesses})
+                          </DropdownMenuLabel>
+                          {pendingItems.businesses.map((business) => (
+                            <DropdownMenuItem key={business.id} asChild>
+                              <Link href="/admin/pending-businesses" className="flex flex-col items-start py-2">
+                                <span className="font-medium text-sm">{business.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(business.created_at).toLocaleDateString()}
+                                </span>
+                              </Link>
+                            </DropdownMenuItem>
+                          ))}
+                          {counts.pendingBusinesses > 5 && (
+                            <DropdownMenuItem asChild>
+                              <Link href="/admin/pending-businesses" className="text-center text-sm text-primary">
+                                View all {counts.pendingBusinesses} pending businesses
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                        </>
+                      )}
+
+                      {pendingItems.reviews.length > 0 && (
+                        <>
+                          <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">
+                            Pending Reviews ({counts.pendingReviews})
+                          </DropdownMenuLabel>
+                          {pendingItems.reviews.map((review) => (
+                            <DropdownMenuItem key={review.id} asChild>
+                              <Link href="/admin/pending-reviews" className="flex flex-col items-start py-2">
+                                <span className="font-medium text-sm">{review.business_name}</span>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex">
+                                    {[...Array(5)].map((_, i) => (
+                                      <Star
+                                        key={i}
+                                        className={cn(
+                                          "h-3 w-3",
+                                          i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300",
+                                        )}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(review.created_at).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </Link>
+                            </DropdownMenuItem>
+                          ))}
+                          {counts.pendingReviews > 5 && (
+                            <DropdownMenuItem asChild>
+                              <Link href="/admin/pending-reviews" className="text-center text-sm text-primary">
+                                View all {counts.pendingReviews} pending reviews
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <Button variant="ghost" size="sm">
                 <Settings className="h-5 w-5" />
@@ -241,7 +357,6 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
           </div>
         </header>
 
-        {/* Content Area */}
         <main className="flex-1 overflow-auto bg-background">
           <div className="p-6">{children}</div>
         </main>
