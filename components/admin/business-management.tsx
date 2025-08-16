@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Search, Eye, Check, X, MapPin, Phone, Mail, Globe, Trash2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { updateBusinessStatus, updateBusinessVerification } from "@/lib/actions"
 
 interface Business {
   id: string
@@ -64,38 +65,19 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
     }
   }
 
-  const handleBusinessAction = async (businessId: string, action: "approve" | "reject" | "pending") => {
+  const handleBusinessAction = async (businessId: string, action: "approved" | "rejected" | "pending") => {
     setIsLoading(true)
-    const supabase = createClient()
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
+      const result = await updateBusinessStatus(businessId, action, action === "rejected" ? actionNotes : undefined)
 
-      const updates = {
-        status: action,
-        approved_by: action !== "pending" ? user.id : null,
-        approved_at: action !== "pending" ? new Date().toISOString() : null,
+      if (result.error) {
+        alert(result.error)
+      } else {
+        setActionNotes("")
+        setEditingStatus("")
+        router.refresh()
       }
-
-      const { error } = await supabase.from("businesses").update(updates).eq("id", businessId)
-
-      if (error) throw error
-
-      // Log the action
-      await supabase.from("audit_log").insert({
-        table_name: "businesses",
-        record_id: businessId,
-        action: action,
-        user_id: user.id,
-        new_values: { status: updates.status, notes: actionNotes },
-      })
-
-      setActionNotes("")
-      setEditingStatus("")
-      router.refresh()
     } catch (error) {
       console.error("Error updating business:", error)
       alert("Failed to update business status. Please try again.")
@@ -106,15 +88,18 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
 
   const toggleVerification = async (businessId: string, currentStatus: boolean) => {
     setIsLoading(true)
-    const supabase = createClient()
 
     try {
-      const { error } = await supabase.from("businesses").update({ is_verified: !currentStatus }).eq("id", businessId)
+      const result = await updateBusinessVerification(businessId, !currentStatus)
 
-      if (error) throw error
-      router.refresh()
+      if (result.error) {
+        alert(result.error)
+      } else {
+        router.refresh()
+      }
     } catch (error) {
       console.error("Error updating verification:", error)
+      alert("Failed to update verification status. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -138,7 +123,6 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
 
       if (error) throw error
 
-      // Log the action
       await supabase.from("audit_log").insert({
         table_name: "businesses",
         record_id: businessId,
@@ -375,7 +359,7 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
                   {business.status === "pending" && (
                     <>
                       <Button
-                        onClick={() => handleBusinessAction(business.id, "approve")}
+                        onClick={() => handleBusinessAction(business.id, "approved")}
                         disabled={isLoading}
                         size="sm"
                         className="bg-green-600 hover:bg-green-700"
@@ -383,7 +367,7 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
                         <Check className="h-4 w-4" />
                       </Button>
                       <Button
-                        onClick={() => handleBusinessAction(business.id, "reject")}
+                        onClick={() => handleBusinessAction(business.id, "rejected")}
                         disabled={isLoading}
                         size="sm"
                         variant="destructive"

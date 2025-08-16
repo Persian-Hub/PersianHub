@@ -9,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Search, Eye, Check, X, Star, MessageSquare, User, Building2 } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { updateReviewStatus } from "@/lib/actions"
 
 interface Review {
   id: string
@@ -67,37 +67,19 @@ export function ReviewManagement({ reviews }: ReviewManagementProps) {
 
   const handleReviewAction = async (reviewId: string, action: "approve" | "reject") => {
     setIsLoading(true)
-    const supabase = createClient()
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
+      const result = await updateReviewStatus(reviewId, action === "approve" ? "approved" : "rejected", actionNotes)
 
-      const updates = {
-        status: action === "approve" ? "approved" : "rejected",
-        approved_by_admin_id: user.id,
-        approved_at: new Date().toISOString(),
+      if (result.error) {
+        alert(result.error)
+      } else {
+        setActionNotes("")
+        router.refresh()
       }
-
-      const { error } = await supabase.from("reviews").update(updates).eq("id", reviewId)
-
-      if (error) throw error
-
-      // Log the action
-      await supabase.from("audit_log").insert({
-        table_name: "reviews",
-        record_id: reviewId,
-        action: action === "approve" ? "approved" : "rejected",
-        user_id: user.id,
-        new_values: { status: updates.status, notes: actionNotes },
-      })
-
-      setActionNotes("")
-      router.refresh()
     } catch (error) {
       console.error("Error updating review:", error)
+      alert("Failed to update review status. Please try again.")
     } finally {
       setIsLoading(false)
     }

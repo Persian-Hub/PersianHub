@@ -12,9 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
 import { ImageUpload } from "@/components/ui/image-upload"
-import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Loader2, Plus, X } from "lucide-react"
+import { createBusiness } from "@/lib/actions"
 
 interface Category {
   id: number
@@ -135,75 +135,27 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
     setLoading(true)
 
     try {
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("id", userId)
-        .single()
+      const formDataObj = new FormData()
 
-      if (profileError && profileError.code === "PGRST116") {
-        const { data: user } = await supabase.auth.getUser()
-        if (user.user) {
-          const { error: createProfileError } = await supabase.from("profiles").insert({
-            id: userId,
-            email: user.user.email || "",
-            full_name: user.user.user_metadata?.full_name || "",
-          })
+      // Add all form fields to FormData
+      Object.entries(formData).forEach(([key, value]) => {
+        formDataObj.append(key, value)
+      })
 
-          if (createProfileError) throw createProfileError
-        }
+      formDataObj.append("latitude", coordinates.latitude?.toString() || "")
+      formDataObj.append("longitude", coordinates.longitude?.toString() || "")
+      formDataObj.append("images", JSON.stringify(images))
+      formDataObj.append("opening_hours", JSON.stringify(workingHours))
+      formDataObj.append("services", JSON.stringify(services))
+
+      const result = await createBusiness(null, formDataObj)
+
+      if (result.error) {
+        alert(result.error)
+      } else {
+        alert(result.success)
+        router.push("/dashboard")
       }
-
-      const baseSlug = formData.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "")
-
-      let slug = baseSlug
-      let counter = 1
-
-      while (true) {
-        const { data: existingBusiness } = await supabase.from("businesses").select("id").eq("slug", slug).single()
-
-        if (!existingBusiness) {
-          break
-        }
-
-        slug = `${baseSlug}-${counter}`
-        counter++
-      }
-
-      const { data: business, error: businessError } = await supabase
-        .from("businesses")
-        .insert({
-          ...formData,
-          slug,
-          owner_id: userId,
-          category_id: formData.category_id,
-          subcategory_id: formData.subcategory_id || null,
-          images: images,
-          opening_hours: workingHours,
-          status: "pending",
-          latitude: coordinates.latitude,
-          longitude: coordinates.longitude,
-        })
-        .select()
-        .single()
-
-      if (businessError) throw businessError
-
-      if (services.length > 0 && business) {
-        const serviceInserts = services.map((service) => ({
-          business_id: business.id,
-          service_name: service,
-        }))
-
-        const { error: servicesError } = await supabase.from("business_services").insert(serviceInserts)
-
-        if (servicesError) throw servicesError
-      }
-
-      router.push("/dashboard")
     } catch (error) {
       console.error("Error adding business:", error)
       alert("Error adding business. Please try again.")

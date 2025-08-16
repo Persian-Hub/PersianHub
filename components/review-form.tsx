@@ -6,6 +6,7 @@ import { useState } from "react"
 import { Star } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { createReview } from "@/lib/actions"
 
 interface ReviewFormProps {
   businessId: string
@@ -52,18 +53,15 @@ export function ReviewForm({ businessId, onReviewSubmitted }: ReviewFormProps) {
         return
       }
 
-      // Submit the review
-      const { error: submitError } = await supabase.from("reviews").insert({
-        business_id: businessId,
-        reviewer_id: user.id,
-        rating: rating,
-        comment: comment.trim(),
-        status: "pending", // Reviews need admin approval
-      })
+      const formData = new FormData()
+      formData.append("businessId", businessId)
+      formData.append("rating", rating.toString())
+      formData.append("comment", comment.trim())
 
-      if (submitError) {
-        console.error("[v0] Review submission error:", submitError)
-        setError("Failed to submit review. Please try again.")
+      const result = await createReview(null, formData)
+
+      if (result.error) {
+        setError(result.error)
       } else {
         setSuccess(true)
         setRating(0)
