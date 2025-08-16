@@ -1,9 +1,9 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Montserrat, Open_Sans } from "next/font/google"
+import { Analytics } from "@vercel/analytics/next"
+import { Suspense } from "react"
 import "./globals.css"
-
-export const runtime = "nodejs"
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -35,7 +35,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${montserrat.variable} ${openSans.variable} antialiased`}>
-      <body>{children}</body>
+      <body>
+        <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+        <Analytics />
+      </body>
     </html>
   )
 }

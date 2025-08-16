@@ -13,27 +13,15 @@ import {
 import Image from "next/image"
 
 export async function Header() {
-  let user = null
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   let profile = null
-
-  try {
-    // Check if required environment variables are available
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
-      const supabase = createClient()
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser()
-
-      user = authUser
-
-      if (user) {
-        const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single()
-        profile = data
-      }
-    }
-  } catch (error) {
-    // Silently handle errors during build process
-    console.log("[v0] Header: Supabase not available during build, showing logged out state")
+  if (user) {
+    const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+    profile = data
   }
 
   return (
