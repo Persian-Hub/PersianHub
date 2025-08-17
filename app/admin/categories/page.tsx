@@ -2,7 +2,6 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { CategoryManagement } from "@/components/admin/category-management"
-import { Plus } from "lucide-react"
 
 async function getCategories() {
   const supabase = await createClient()
@@ -38,18 +37,11 @@ export default async function CategoriesPage() {
 
   return (
     <AdminLayout>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Categories & Subcategories</h1>
-        <div className="flex gap-3">
-          <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Add Category
-          </button>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Add Subcategory
-          </button>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Categories & Subcategories Management</h1>
+        <p className="text-gray-600 mt-2">
+          Add, edit, and remove categories and subcategories for better organization.
+        </p>
       </div>
 
       <CategoryManagement categories={categories} />

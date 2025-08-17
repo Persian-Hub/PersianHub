@@ -8,10 +8,12 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { Search, Eye, Check, X, MapPin, Phone, Mail, Globe, Trash2 } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { Search, Eye, Check, X, MapPin, Phone, Mail, Globe, Trash2, Edit, Plus, Minus } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { updateBusinessStatus, updateBusinessVerification } from "@/lib/actions"
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
 
 interface Business {
   id: string
@@ -42,6 +44,10 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
   const [actionNotes, setActionNotes] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [editingStatus, setEditingStatus] = useState<string>("")
+  const [isEditing, setIsEditing] = useState(false)
+  const [editFormData, setEditFormData] = useState<any>({})
+  const [workingHours, setWorkingHours] = useState<any>({})
+  const [newImages, setNewImages] = useState<string[]>([])
   const router = useRouter()
 
   const filteredBusinesses = businesses.filter((business) => {
@@ -140,6 +146,73 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
     }
   }
 
+  const handleEditBusiness = (business: Business) => {
+    setSelectedBusiness(business)
+    setEditFormData({
+      name: business.name,
+      description: business.description,
+      address: business.address,
+      phone: business.phone || "",
+      email: business.email || "",
+      website: business.website || "",
+    })
+    setNewImages(business.images || [])
+    setWorkingHours({
+      monday: { open: "09:00", close: "17:00", closed: false },
+      tuesday: { open: "09:00", close: "17:00", closed: false },
+      wednesday: { open: "09:00", close: "17:00", closed: false },
+      thursday: { open: "09:00", close: "17:00", closed: false },
+      friday: { open: "09:00", close: "17:00", closed: false },
+      saturday: { open: "09:00", close: "17:00", closed: false },
+      sunday: { open: "09:00", close: "17:00", closed: false },
+    })
+    setIsEditing(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!selectedBusiness) return
+
+    setIsLoading(true)
+    const supabase = createClient()
+
+    try {
+      const { error } = await supabase
+        .from("businesses")
+        .update({
+          name: editFormData.name,
+          description: editFormData.description,
+          address: editFormData.address,
+          phone: editFormData.phone,
+          email: editFormData.email,
+          website: editFormData.website,
+          images: newImages,
+          opening_hours: workingHours,
+        })
+        .eq("id", selectedBusiness.id)
+
+      if (error) throw error
+
+      setIsEditing(false)
+      router.refresh()
+    } catch (error) {
+      console.error("Error updating business:", error)
+      alert("Failed to update business. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleAddImage = () => {
+    const imageUrl = prompt("Enter image URL:")
+    if (imageUrl) {
+      setNewImages([...newImages, imageUrl])
+    }
+  }
+
+  const handleRemoveImage = (index: number) => {
+    setNewImages(newImages.filter((_, i) => i !== index))
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -228,133 +301,299 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
                       View
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>Business Details</DialogTitle>
+                      <DialogTitle className="flex items-center justify-between">
+                        Business Details
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => (isEditing ? setIsEditing(false) : handleEditBusiness(business))}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          {isEditing ? "Cancel Edit" : "Edit Business"}
+                        </Button>
+                      </DialogTitle>
                     </DialogHeader>
                     {selectedBusiness && (
-                      <div className="space-y-4">
-                        {selectedBusiness.images && selectedBusiness.images.length > 0 && (
-                          <div>
-                            <h4 className="font-medium mb-2">Business Images</h4>
-                            <div className="grid grid-cols-3 gap-2">
-                              {selectedBusiness.images.map((image, index) => (
-                                <img
-                                  key={index}
-                                  src={image || "/placeholder.svg"}
-                                  alt={`${selectedBusiness.name} image ${index + 1}`}
-                                  className="w-full h-24 object-cover rounded border"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement
-                                    target.src = "/placeholder.svg?height=96&width=96"
-                                  }}
+                      <div className="space-y-6">
+                        {isEditing ? (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label htmlFor="name">Business Name</Label>
+                                <Input
+                                  id="name"
+                                  value={editFormData.name}
+                                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
                                 />
-                              ))}
+                              </div>
+                              <div>
+                                <Label htmlFor="phone">Phone</Label>
+                                <Input
+                                  id="phone"
+                                  value={editFormData.phone}
+                                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <Label htmlFor="description">Description</Label>
+                              <Textarea
+                                id="description"
+                                value={editFormData.description}
+                                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                                rows={3}
+                              />
+                            </div>
+
+                            <div>
+                              <Label htmlFor="address">Address</Label>
+                              <AddressAutocomplete
+                                value={editFormData.address}
+                                onChange={(address) => setEditFormData({ ...editFormData, address })}
+                                placeholder="Enter business address"
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label htmlFor="email">Email</Label>
+                                <Input
+                                  id="email"
+                                  type="email"
+                                  value={editFormData.email}
+                                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="website">Website</Label>
+                                <Input
+                                  id="website"
+                                  value={editFormData.website}
+                                  onChange={(e) => setEditFormData({ ...editFormData, website: e.target.value })}
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <Label>Business Images</Label>
+                                <Button type="button" variant="outline" size="sm" onClick={handleAddImage}>
+                                  <Plus className="h-4 w-4 mr-1" />
+                                  Add Image
+                                </Button>
+                              </div>
+                              <div className="grid grid-cols-4 gap-2">
+                                {newImages.map((image, index) => (
+                                  <div key={index} className="relative">
+                                    <img
+                                      src={image || "/placeholder.svg"}
+                                      alt={`Business image ${index + 1}`}
+                                      className="w-full h-20 object-cover rounded border"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="destructive"
+                                      size="sm"
+                                      className="absolute -top-2 -right-2 h-6 w-6 p-0"
+                                      onClick={() => handleRemoveImage(index)}
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div>
+                              <Label>Working Hours</Label>
+                              <div className="space-y-2 mt-2">
+                                {Object.entries(workingHours).map(([day, hours]: [string, any]) => (
+                                  <div key={day} className="flex items-center space-x-2">
+                                    <div className="w-20 text-sm font-medium capitalize">{day}</div>
+                                    <input
+                                      type="checkbox"
+                                      checked={!hours.closed}
+                                      onChange={(e) =>
+                                        setWorkingHours({
+                                          ...workingHours,
+                                          [day]: { ...hours, closed: !e.target.checked },
+                                        })
+                                      }
+                                    />
+                                    <span className="text-sm">Open</span>
+                                    {!hours.closed && (
+                                      <>
+                                        <Input
+                                          type="time"
+                                          value={hours.open}
+                                          onChange={(e) =>
+                                            setWorkingHours({
+                                              ...workingHours,
+                                              [day]: { ...hours, open: e.target.value },
+                                            })
+                                          }
+                                          className="w-24"
+                                        />
+                                        <span className="text-sm">to</span>
+                                        <Input
+                                          type="time"
+                                          value={hours.close}
+                                          onChange={(e) =>
+                                            setWorkingHours({
+                                              ...workingHours,
+                                              [day]: { ...hours, close: e.target.value },
+                                            })
+                                          }
+                                          className="w-24"
+                                        />
+                                      </>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="flex space-x-2 pt-4">
+                              <Button onClick={handleSaveEdit} disabled={isLoading}>
+                                Save Changes
+                              </Button>
+                              <Button variant="outline" onClick={() => setIsEditing(false)}>
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {selectedBusiness.images && selectedBusiness.images.length > 0 && (
+                              <div>
+                                <h4 className="font-medium mb-2">Business Images</h4>
+                                <div className="grid grid-cols-3 gap-2">
+                                  {selectedBusiness.images.map((image, index) => (
+                                    <img
+                                      key={index}
+                                      src={image || "/placeholder.svg"}
+                                      alt={`${selectedBusiness.name} image ${index + 1}`}
+                                      className="w-full h-24 object-cover rounded border"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement
+                                        target.src = "/placeholder.svg?height=96&width=96"
+                                      }}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div>
+                              <h3 className="font-semibold text-lg">{selectedBusiness.name}</h3>
+                              <p className="text-gray-600">{selectedBusiness.description}</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div className="space-y-2">
+                                <p className="flex items-center">
+                                  <MapPin className="h-4 w-4 mr-2" />
+                                  {selectedBusiness.address}
+                                </p>
+                                {selectedBusiness.phone && (
+                                  <p className="flex items-center">
+                                    <Phone className="h-4 w-4 mr-2" />
+                                    {selectedBusiness.phone}
+                                  </p>
+                                )}
+                                {selectedBusiness.email && (
+                                  <p className="flex items-center">
+                                    <Mail className="h-4 w-4 mr-2" />
+                                    {selectedBusiness.email}
+                                  </p>
+                                )}
+                                {selectedBusiness.website && (
+                                  <p className="flex items-center">
+                                    <Globe className="h-4 w-4 mr-2" />
+                                    {selectedBusiness.website}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <p>
+                                  <strong>Owner:</strong> {selectedBusiness.profiles?.full_name}
+                                </p>
+                                <p>
+                                  <strong>Category:</strong> {selectedBusiness.categories?.name}
+                                </p>
+                                <p>
+                                  <strong>Subcategory:</strong> {selectedBusiness.subcategories?.name}
+                                </p>
+                                <p>
+                                  <strong>Status:</strong> {selectedBusiness.status}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="space-y-3 pt-4 border-t">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm font-medium">Change Status:</span>
+                                <Select
+                                  value={editingStatus || selectedBusiness.status}
+                                  onValueChange={setEditingStatus}
+                                >
+                                  <SelectTrigger className="w-32">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="approved">Approved</SelectItem>
+                                    <SelectItem value="rejected">Rejected</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                {editingStatus && editingStatus !== selectedBusiness.status && (
+                                  <Button
+                                    onClick={() => handleBusinessAction(selectedBusiness.id, editingStatus as any)}
+                                    disabled={isLoading}
+                                    size="sm"
+                                  >
+                                    Update
+                                  </Button>
+                                )}
+                              </div>
+
+                              <Textarea
+                                placeholder="Add notes for this action..."
+                                value={actionNotes}
+                                onChange={(e) => setActionNotes(e.target.value)}
+                              />
+
+                              <div className="flex space-x-2">
+                                {selectedBusiness.status === "approved" && (
+                                  <Button
+                                    onClick={() =>
+                                      toggleVerification(selectedBusiness.id, selectedBusiness.is_verified)
+                                    }
+                                    disabled={isLoading}
+                                    variant="outline"
+                                  >
+                                    {selectedBusiness.is_verified ? "Remove Verification" : "Mark as Verified"}
+                                  </Button>
+                                )}
+                                <Button
+                                  onClick={() => handleDeleteBusiness(selectedBusiness.id)}
+                                  disabled={isLoading}
+                                  variant="destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Delete Business
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         )}
-
-                        <div>
-                          <h3 className="font-semibold text-lg">{selectedBusiness.name}</h3>
-                          <p className="text-gray-600">{selectedBusiness.description}</p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="space-y-2">
-                            <p className="flex items-center">
-                              <MapPin className="h-4 w-4 mr-2" />
-                              {selectedBusiness.address}
-                            </p>
-                            {selectedBusiness.phone && (
-                              <p className="flex items-center">
-                                <Phone className="h-4 w-4 mr-2" />
-                                {selectedBusiness.phone}
-                              </p>
-                            )}
-                            {selectedBusiness.email && (
-                              <p className="flex items-center">
-                                <Mail className="h-4 w-4 mr-2" />
-                                {selectedBusiness.email}
-                              </p>
-                            )}
-                            {selectedBusiness.website && (
-                              <p className="flex items-center">
-                                <Globe className="h-4 w-4 mr-2" />
-                                {selectedBusiness.website}
-                              </p>
-                            )}
-                          </div>
-                          <div className="space-y-2">
-                            <p>
-                              <strong>Owner:</strong> {selectedBusiness.profiles?.full_name}
-                            </p>
-                            <p>
-                              <strong>Category:</strong> {selectedBusiness.categories?.name}
-                            </p>
-                            <p>
-                              <strong>Subcategory:</strong> {selectedBusiness.subcategories?.name}
-                            </p>
-                            <p>
-                              <strong>Status:</strong> {selectedBusiness.status}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="space-y-3 pt-4 border-t">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium">Change Status:</span>
-                            <Select value={editingStatus || selectedBusiness.status} onValueChange={setEditingStatus}>
-                              <SelectTrigger className="w-32">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="pending">Pending</SelectItem>
-                                <SelectItem value="approved">Approved</SelectItem>
-                                <SelectItem value="rejected">Rejected</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            {editingStatus && editingStatus !== selectedBusiness.status && (
-                              <Button
-                                onClick={() => handleBusinessAction(selectedBusiness.id, editingStatus as any)}
-                                disabled={isLoading}
-                                size="sm"
-                              >
-                                Update
-                              </Button>
-                            )}
-                          </div>
-
-                          <Textarea
-                            placeholder="Add notes for this action..."
-                            value={actionNotes}
-                            onChange={(e) => setActionNotes(e.target.value)}
-                          />
-
-                          <div className="flex space-x-2">
-                            {selectedBusiness.status === "approved" && (
-                              <Button
-                                onClick={() => toggleVerification(selectedBusiness.id, selectedBusiness.is_verified)}
-                                disabled={isLoading}
-                                variant="outline"
-                              >
-                                {selectedBusiness.is_verified ? "Remove Verification" : "Mark as Verified"}
-                              </Button>
-                            )}
-                            <Button
-                              onClick={() => handleDeleteBusiness(selectedBusiness.id)}
-                              disabled={isLoading}
-                              variant="destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Delete Business
-                            </Button>
-                          </div>
-                        </div>
                       </div>
                     )}
                   </DialogContent>
                 </Dialog>
 
-                {/* Quick action buttons */}
                 <div className="flex space-x-1">
                   {business.status === "pending" && (
                     <>
@@ -377,12 +616,20 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
                     </>
                   )}
                   <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/admin/businesses/${business.id}/edit`)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
                     onClick={() => handleDeleteBusiness(business.id)}
                     disabled={isLoading}
                     size="sm"
                     variant="outline"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4 mr-1" />
                   </Button>
                 </div>
               </div>

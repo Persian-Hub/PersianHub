@@ -4,6 +4,7 @@ import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { notificationService } from "@/lib/services/notification-service"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 // Update the signIn function to handle redirects properly
 export async function signIn(prevState: any, formData: FormData) {
@@ -548,5 +549,291 @@ export async function getEmailConfiguration() {
   } catch (error) {
     console.error("Error getting email configuration:", error)
     return { error: "Failed to get email configuration" }
+  }
+}
+
+export async function createCategory(prevState: any, formData: FormData) {
+  const cookieStore = cookies()
+  const supabase = createServerActionClient({ cookies: () => cookieStore })
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      return { error: "Authentication required" }
+    }
+
+    // Check if user is admin
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+    if (!profile || profile.role !== "admin") {
+      return { error: "Admin access required" }
+    }
+
+    const name = formData.get("name")?.toString()
+    if (!name?.trim()) {
+      return { error: "Category name is required" }
+    }
+
+    const adminSupabase = createAdminClient()
+
+    // Check if category already exists
+    const { data: existingCategory } = await adminSupabase
+      .from("categories")
+      .select("id")
+      .eq("name", name.trim())
+      .single()
+
+    if (existingCategory) {
+      return { error: "Category already exists" }
+    }
+
+    // Generate slug
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+
+    const { data, error } = await adminSupabase.from("categories").insert({ name: name.trim(), slug }).select().single()
+
+    if (error) throw error
+
+    return { success: "Category created successfully", data }
+  } catch (error) {
+    console.error("Error creating category:", error)
+    return { error: "Failed to create category" }
+  }
+}
+
+export async function updateCategory(prevState: any, formData: FormData) {
+  const cookieStore = cookies()
+  const supabase = createServerActionClient({ cookies: () => cookieStore })
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      return { error: "Authentication required" }
+    }
+
+    // Check if user is admin
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+    if (!profile || profile.role !== "admin") {
+      return { error: "Admin access required" }
+    }
+
+    const categoryId = formData.get("categoryId")?.toString()
+    const name = formData.get("name")?.toString()
+
+    if (!categoryId || !name?.trim()) {
+      return { error: "Category ID and name are required" }
+    }
+
+    // Generate new slug
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+
+    const adminSupabase = createAdminClient()
+    const { error } = await adminSupabase.from("categories").update({ name: name.trim(), slug }).eq("id", categoryId)
+
+    if (error) throw error
+
+    return { success: "Category updated successfully" }
+  } catch (error) {
+    console.error("Error updating category:", error)
+    return { error: "Failed to update category" }
+  }
+}
+
+export async function deleteCategory(categoryId: string) {
+  const cookieStore = cookies()
+  const supabase = createServerActionClient({ cookies: () => cookieStore })
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      return { error: "Authentication required" }
+    }
+
+    // Check if user is admin
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+    if (!profile || profile.role !== "admin") {
+      return { error: "Admin access required" }
+    }
+
+    const adminSupabase = createAdminClient()
+
+    // Check if category has businesses
+    const { data: businesses } = await adminSupabase
+      .from("businesses")
+      .select("id")
+      .eq("category_id", categoryId)
+      .limit(1)
+
+    if (businesses && businesses.length > 0) {
+      return { error: "Cannot delete category with existing businesses" }
+    }
+
+    const { error } = await adminSupabase.from("categories").delete().eq("id", categoryId)
+
+    if (error) throw error
+
+    return { success: "Category deleted successfully" }
+  } catch (error) {
+    console.error("Error deleting category:", error)
+    return { error: "Failed to delete category" }
+  }
+}
+
+export async function createSubcategory(prevState: any, formData: FormData) {
+  const cookieStore = cookies()
+  const supabase = createServerActionClient({ cookies: () => cookieStore })
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      return { error: "Authentication required" }
+    }
+
+    // Check if user is admin
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+    if (!profile || profile.role !== "admin") {
+      return { error: "Admin access required" }
+    }
+
+    const name = formData.get("name")?.toString()
+    const categoryId = formData.get("categoryId")?.toString()
+
+    if (!name?.trim() || !categoryId) {
+      return { error: "Subcategory name and category are required" }
+    }
+
+    const adminSupabase = createAdminClient()
+
+    // Check if subcategory already exists in this category
+    const { data: existingSubcategory } = await adminSupabase
+      .from("subcategories")
+      .select("id")
+      .eq("name", name.trim())
+      .eq("category_id", categoryId)
+      .single()
+
+    if (existingSubcategory) {
+      return { error: "Subcategory already exists in this category" }
+    }
+
+    // Generate slug
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+
+    const { data, error } = await adminSupabase
+      .from("subcategories")
+      .insert({ name: name.trim(), slug, category_id: categoryId })
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return { success: "Subcategory created successfully", data }
+  } catch (error) {
+    console.error("Error creating subcategory:", error)
+    return { error: "Failed to create subcategory" }
+  }
+}
+
+export async function updateSubcategory(prevState: any, formData: FormData) {
+  const cookieStore = cookies()
+  const supabase = createServerActionClient({ cookies: () => cookieStore })
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      return { error: "Authentication required" }
+    }
+
+    // Check if user is admin
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+    if (!profile || profile.role !== "admin") {
+      return { error: "Admin access required" }
+    }
+
+    const subcategoryId = formData.get("subcategoryId")?.toString()
+    const name = formData.get("name")?.toString()
+
+    if (!subcategoryId || !name?.trim()) {
+      return { error: "Subcategory ID and name are required" }
+    }
+
+    // Generate new slug
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+
+    const adminSupabase = createAdminClient()
+    const { error } = await adminSupabase
+      .from("subcategories")
+      .update({ name: name.trim(), slug })
+      .eq("id", subcategoryId)
+
+    if (error) throw error
+
+    return { success: "Subcategory updated successfully" }
+  } catch (error) {
+    console.error("Error updating subcategory:", error)
+    return { error: "Failed to update subcategory" }
+  }
+}
+
+export async function deleteSubcategory(subcategoryId: string) {
+  const cookieStore = cookies()
+  const supabase = createServerActionClient({ cookies: () => cookieStore })
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      return { error: "Authentication required" }
+    }
+
+    // Check if user is admin
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+    if (!profile || profile.role !== "admin") {
+      return { error: "Admin access required" }
+    }
+
+    const adminSupabase = createAdminClient()
+
+    // Check if subcategory has businesses
+    const { data: businesses } = await adminSupabase
+      .from("businesses")
+      .select("id")
+      .eq("subcategory_id", subcategoryId)
+      .limit(1)
+
+    if (businesses && businesses.length > 0) {
+      return { error: "Cannot delete subcategory with existing businesses" }
+    }
+
+    const { error } = await adminSupabase.from("subcategories").delete().eq("id", subcategoryId)
+
+    if (error) throw error
+
+    return { success: "Subcategory deleted successfully" }
+  } catch (error) {
+    console.error("Error deleting subcategory:", error)
+    return { error: "Failed to delete subcategory" }
   }
 }

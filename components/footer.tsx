@@ -122,7 +122,7 @@ export function Footer() {
               </div>
               <div className="flex items-center gap-2">
                 <span>✉️</span>
-                <span>info@businessfinder.com</span>
+                <span>info@persianhub.com.au</span>
               </div>
               <div className="flex items-center gap-2">
                 <span>🕒</span>

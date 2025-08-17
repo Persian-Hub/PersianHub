@@ -97,7 +97,10 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
   }
 
   const handleAddressChange = (address: string, placeDetails?: google.maps.places.PlaceResult) => {
-    setFormData({ ...formData, address })
+    console.log("[v0] Address change triggered:", { address, hasPlaceDetails: !!placeDetails })
+
+    // Only update address field, preserve all other form data
+    setFormData((prevData) => ({ ...prevData, address }))
 
     if (placeDetails?.geometry?.location) {
       const lat = placeDetails.geometry.location.lat()
@@ -106,7 +109,7 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
         latitude: lat,
         longitude: lng,
       })
-      console.log("[v0] Coordinates extracted:", { lat, lng })
+      console.log("[v0] Coordinates extracted and preserved other form fields:", { lat, lng })
     }
   }
 
@@ -186,7 +189,7 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
 
             <div className="space-y-2">
               <Label htmlFor="phone" className="font-sans font-medium">
-                Phone Number
+                Phone Number *
               </Label>
               <Input
                 id="phone"
@@ -194,13 +197,14 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="+61 xxx xxx xxx"
+                required
               />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="description" className="font-sans font-medium">
-              Description
+              Description *
             </Label>
             <Textarea
               id="description"
@@ -208,6 +212,7 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Tell customers about your business..."
               rows={4}
+              required
             />
           </div>
 
@@ -275,11 +280,12 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label className="font-sans font-medium">Subcategory</Label>
+              <Label className="font-sans font-medium">Subcategory *</Label>
               <Select
                 value={formData.subcategory_id}
                 onValueChange={(value) => setFormData({ ...formData, subcategory_id: value })}
                 disabled={!selectedCategory}
+                required
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a subcategory" />
