@@ -8,25 +8,26 @@ export function Footer() {
     <footer className="bg-white border-t border-gray-200">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Footer Content */}
-        <div className="py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="py-8 lg:py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
           {/* Brand */}
-          <div className="md:col-span-1">
+          <div className="sm:col-span-2 lg:col-span-1">
             <div className="flex items-center space-x-2 mb-4">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">🔍</span>
               </div>
-              <span className="font-bold text-xl text-gray-900">Persian Hub  </span>
+              <span className="font-bold text-xl text-gray-900">Persian Hub</span>
             </div>
             <p className="text-gray-600 text-sm leading-relaxed mb-4">
-              Discover amazing local Persian businesses in your area. Connect with services, restaurants, shops, and more.
+              Discover amazing local Persian businesses in your area. Connect with services, restaurants, shops, and
+              more.
             </p>
             <div className="space-y-2 text-sm text-gray-600">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
+                <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
                 <span>Over 10,000 active businesses</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
+                <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
                 <span>Verified and trusted</span>
               </div>
             </div>
@@ -61,7 +62,6 @@ export function Footer() {
                   Mobile App
                 </Link>
               </li>
-              
             </ul>
           </div>
 
@@ -111,10 +111,9 @@ export function Footer() {
               <Button className="w-full bg-blue-600 hover:bg-blue-700">Subscribe</Button>
             </div>
             <div className="mt-6 space-y-2 text-sm text-gray-600">
-              
               <div className="flex items-center gap-2">
                 <span>✉️</span>
-                <span>info@persianhub.com.au</span>
+                <span className="break-all">info@persianhub.com.au</span>
               </div>
               <div className="flex items-center gap-2">
                 <span>🕒</span>
@@ -125,8 +124,8 @@ export function Footer() {
         </div>
 
         {/* Trust Indicators */}
-        <div className="py-8 border-t border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+        <div className="py-6 lg:py-8 border-t border-gray-200">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 lg:gap-8 text-center">
             <div className="flex flex-col items-center">
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
                 <MapPin className="h-6 w-6 text-blue-600" />
@@ -152,10 +151,10 @@ export function Footer() {
         </div>
 
         {/* Mobile App Section */}
-        <div className="py-8 bg-blue-600 rounded-2xl text-center text-white -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
-          <h3 className="text-2xl font-bold mb-2">Download the Mobile App</h3>
-          <p className="text-blue-100 mb-6">Easier access to local businesses</p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="py-6 lg:py-8 bg-blue-600 rounded-2xl text-center text-white -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+          <h3 className="text-xl lg:text-2xl font-bold mb-2">Download the Mobile App</h3>
+          <p className="text-blue-100 mb-4 lg:mb-6">Easier access to local businesses</p>
+          <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 justify-center max-w-md mx-auto">
             <Button variant="secondary" className="bg-white text-gray-900 hover:bg-gray-100">
               Google Play
             </Button>
@@ -166,8 +165,8 @@ export function Footer() {
         </div>
 
         {/* Bottom Footer */}
-        <div className="py-6 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center">
-          <div className="flex items-center space-x-4 mb-4 sm:mb-0">
+        <div className="py-4 lg:py-6 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
             <span className="text-sm text-gray-600">Follow us:</span>
             <div className="flex space-x-3">
               <Link href="#" className="text-gray-400 hover:text-blue-600">
@@ -188,7 +187,7 @@ export function Footer() {
               </Link>
             </div>
           </div>
-          <p className="text-sm text-gray-600">© 2024 Persian Hub. All rights reserved.</p>
+          <p className="text-sm text-gray-600 text-center sm:text-right">© 2024 Persian Hub. All rights reserved.</p>
         </div>
       </div>
     </footer>

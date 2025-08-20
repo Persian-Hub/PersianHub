@@ -1,7 +1,6 @@
 "use server"
 
 import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { notificationService } from "@/lib/services/notification-service"
 import { createAdminClient } from "@/lib/supabase/admin"
@@ -21,8 +20,7 @@ export async function signIn(prevState: any, formData: FormData) {
     return { error: "Email and password are required" }
   }
 
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createServerActionClient()
 
   try {
     const { error } = await supabase.auth.signInWithPassword({
@@ -59,8 +57,7 @@ export async function signUp(prevState: any, formData: FormData) {
     return { error: "All fields are required" }
   }
 
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createServerActionClient()
 
   try {
     const { data, error } = await supabase.auth.signUp({
@@ -88,16 +85,14 @@ export async function signUp(prevState: any, formData: FormData) {
 }
 
 export async function signOut() {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createServerActionClient()
 
   await supabase.auth.signOut()
   redirect("/auth/login")
 }
 
 export async function createBusiness(prevState: any, formData: FormData) {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createServerActionClient()
 
   try {
     const {
@@ -194,8 +189,7 @@ export async function updateBusinessStatus(
   status: "pending" | "approved" | "rejected",
   rejectionReason?: string,
 ) {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createServerActionClient()
 
   try {
     const {
@@ -274,8 +268,7 @@ export async function updateBusinessStatus(
 }
 
 export async function updateBusinessVerification(businessId: string, isVerified: boolean) {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createServerActionClient()
 
   try {
     const {
@@ -332,8 +325,7 @@ export async function updateBusinessVerification(businessId: string, isVerified:
 }
 
 export async function createReview(prevState: any, formData: FormData) {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createServerActionClient()
 
   try {
     const {
@@ -395,8 +387,7 @@ export async function updateReviewStatus(
   status: "pending" | "approved" | "rejected",
   moderationNotes?: string,
 ) {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createServerActionClient()
 
   try {
     const {
@@ -465,8 +456,7 @@ export async function updateReviewStatus(
 }
 
 export async function sendTestEmail(prevState: any, formData: FormData) {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createServerActionClient()
 
   try {
     const {
@@ -511,8 +501,7 @@ export async function sendTestEmail(prevState: any, formData: FormData) {
 }
 
 export async function getEmailConfiguration() {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createServerActionClient()
 
   try {
     const {
@@ -553,8 +542,7 @@ export async function getEmailConfiguration() {
 }
 
 export async function createCategory(prevState: any, formData: FormData) {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createServerActionClient()
 
   try {
     const {
@@ -606,8 +594,7 @@ export async function createCategory(prevState: any, formData: FormData) {
 }
 
 export async function updateCategory(prevState: any, formData: FormData) {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createServerActionClient()
 
   try {
     const {
@@ -649,8 +636,7 @@ export async function updateCategory(prevState: any, formData: FormData) {
 }
 
 export async function deleteCategory(categoryId: string) {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createServerActionClient()
 
   try {
     const {
@@ -691,8 +677,7 @@ export async function deleteCategory(categoryId: string) {
 }
 
 export async function createSubcategory(prevState: any, formData: FormData) {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createServerActionClient()
 
   try {
     const {
@@ -751,8 +736,7 @@ export async function createSubcategory(prevState: any, formData: FormData) {
 }
 
 export async function updateSubcategory(prevState: any, formData: FormData) {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createServerActionClient()
 
   try {
     const {
@@ -797,8 +781,7 @@ export async function updateSubcategory(prevState: any, formData: FormData) {
 }
 
 export async function deleteSubcategory(subcategoryId: string) {
-  const cookieStore = cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = createServerActionClient()
 
   try {
     const {
