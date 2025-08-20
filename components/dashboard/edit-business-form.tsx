@@ -110,11 +110,13 @@ const EditBusinessFormComponent = ({
 
           Object.keys(validatedHours).forEach((day) => {
             if (hoursData[day]) {
+              const dayData = hoursData[day]
               validatedHours[day] = {
-                open: hoursData[day].open || "09:00",
-                close: hoursData[day].close || "17:00",
-                closed: hoursData[day].closed || false,
+                open: dayData.open && dayData.open !== "00:00" ? dayData.open : "09:00",
+                close: dayData.close && dayData.close !== "00:00" ? dayData.close : "17:00",
+                closed: dayData.closed === true || dayData.closed === "true",
               }
+              console.log(`[v0] Set ${day}:`, validatedHours[day])
             }
           })
 
@@ -125,6 +127,8 @@ const EditBusinessFormComponent = ({
         console.error("[v0] Error parsing working hours:", error)
         console.log("[v0] Using default working hours")
       }
+    } else {
+      console.log("[v0] No opening_hours data found, using defaults")
     }
   }, [business.opening_hours])
 
@@ -179,6 +183,22 @@ const EditBusinessFormComponent = ({
     try {
       const supabase = createClient()
 
+      const validatedWorkingHours = { ...workingHours }
+      Object.keys(validatedWorkingHours).forEach((day) => {
+        const dayHours = validatedWorkingHours[day as keyof typeof validatedWorkingHours]
+        if (!dayHours.closed) {
+          // Ensure times are not 00:00 unless intentionally set
+          if (!dayHours.open || dayHours.open === "00:00") {
+            dayHours.open = "09:00"
+          }
+          if (!dayHours.close || dayHours.close === "00:00") {
+            dayHours.close = "17:00"
+          }
+        }
+      })
+
+      console.log("[v0] Saving working hours:", validatedWorkingHours)
+
       const updateData = {
         name: formData.name,
         description: formData.description,
@@ -189,14 +209,21 @@ const EditBusinessFormComponent = ({
         category_id: formData.category_id,
         subcategory_id: formData.subcategory_id,
         images: images,
-        opening_hours: workingHours,
+        opening_hours: validatedWorkingHours, // Use validated working hours
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,
       }
 
+      console.log("[v0] Update data being sent:", updateData)
+
       const { error } = await supabase.from("businesses").update(updateData).eq("id", business.id)
 
-      if (error) throw error
+      if (error) {
+        console.error("[v0] Database update error:", error)
+        throw error
+      }
+
+      console.log("[v0] Business updated successfully")
 
       if (isAdmin) {
         const {

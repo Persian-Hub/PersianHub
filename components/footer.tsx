@@ -15,11 +15,10 @@ export function Footer() {
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">🔍</span>
               </div>
-              <span className="font-bold text-xl text-gray-900">Business Finder</span>
+              <span className="font-bold text-xl text-gray-900">Persian Hub  </span>
             </div>
             <p className="text-gray-600 text-sm leading-relaxed mb-4">
-              A comprehensive platform for registering and searching local businesses with location-based features. We
-              help businesses find more customers.
+              Discover amazing local Persian businesses in your area. Connect with services, restaurants, shops, and more.
             </p>
             <div className="space-y-2 text-sm text-gray-600">
               <div className="flex items-center gap-2">
@@ -62,11 +61,7 @@ export function Footer() {
                   Mobile App
                 </Link>
               </li>
-              <li>
-                <Link href="/blog" className="text-gray-600 hover:text-blue-600 transition-colors">
-                  Blog
-                </Link>
-              </li>
+              
             </ul>
           </div>
 
@@ -116,10 +111,7 @@ export function Footer() {
               <Button className="w-full bg-blue-600 hover:bg-blue-700">Subscribe</Button>
             </div>
             <div className="mt-6 space-y-2 text-sm text-gray-600">
-              <div className="flex items-center gap-2">
-                <span>📞</span>
-                <span>+1 (123) 456-7890</span>
-              </div>
+              
               <div className="flex items-center gap-2">
                 <span>✉️</span>
                 <span>info@persianhub.com.au</span>
