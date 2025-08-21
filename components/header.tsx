@@ -1,8 +1,6 @@
-"use client"
-
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { MapPin, User, LogOut, Shield, Menu, X } from "lucide-react"
+import { MapPin, User, LogOut, Shield } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { signOut } from "@/lib/actions"
 import {
@@ -12,17 +10,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Image from "next/image"
-import { useState } from "react"
 
-interface HeaderProps {
-  user?: any
-  profile?: any
-}
+export async function Header() {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-export function Header({ user, profile }: HeaderProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  let profile = null
+  if (user) {
+    const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+    profile = data
+  }
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -36,7 +36,7 @@ export function Header({ user, profile }: HeaderProps) {
             <span className="font-serif font-bold text-xl text-gray-900">Persian Hub</span>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <Link href="/businesses" className="text-gray-600 hover:text-cyan-800 font-sans">
               Browse Businesses
@@ -49,8 +49,8 @@ export function Header({ user, profile }: HeaderProps) {
             </Link>
           </nav>
 
-          {/* Desktop Actions */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* Actions */}
+          <div className="flex items-center space-x-4">
             <Button variant="ghost" size="sm" className="hidden sm:flex">
               <MapPin className="h-4 w-4 mr-2" />
               Near Me
@@ -134,131 +134,8 @@ export function Header({ user, profile }: HeaderProps) {
               </>
             )}
           </div>
-
-          {/* Mobile Menu */}
-          <div className="md:hidden">
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-80">
-                <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between mb-8">
-                    <span className="font-serif font-bold text-xl text-gray-900">Persian Hub</span>
-                    <Button variant="ghost" size="sm" onClick={() => setMobileMenuOpen(false)}>
-                      <X className="h-6 w-6" />
-                    </Button>
-                  </div>
-
-                  <nav className="flex flex-col space-y-4 mb-8">
-                    <Link
-                      href="/businesses"
-                      className="text-gray-600 hover:text-cyan-800 font-sans py-2"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Browse Businesses
-                    </Link>
-                    <Link
-                      href="/categories"
-                      className="text-gray-600 hover:text-cyan-800 font-sans py-2"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Categories
-                    </Link>
-                    <Link
-                      href="/about"
-                      className="text-gray-600 hover:text-cyan-800 font-sans py-2"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      About
-                    </Link>
-                  </nav>
-
-                  <div className="flex flex-col space-y-4">
-                    <Button variant="ghost" size="sm" className="justify-start">
-                      <MapPin className="h-4 w-4 mr-2" />
-                      Near Me
-                    </Button>
-
-                    {user ? (
-                      <>
-                        <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                          <Button size="sm" className="w-full bg-amber-500 hover:bg-amber-600 text-white">
-                            Dashboard
-                          </Button>
-                        </Link>
-
-                        {profile?.role === "admin" && (
-                          <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-full border-red-200 text-red-700 hover:bg-red-50 bg-transparent"
-                            >
-                              <Shield className="h-4 w-4 mr-2" />
-                              Admin Panel
-                            </Button>
-                          </Link>
-                        )}
-
-                        <Link href="/profile" onClick={() => setMobileMenuOpen(false)}>
-                          <Button variant="outline" size="sm" className="w-full justify-start bg-transparent">
-                            <User className="h-4 w-4 mr-2" />
-                            Profile Settings
-                          </Button>
-                        </Link>
-
-                        <form action={signOut} className="w-full">
-                          <Button
-                            type="submit"
-                            variant="outline"
-                            size="sm"
-                            className="w-full justify-start bg-transparent"
-                          >
-                            <LogOut className="h-4 w-4 mr-2" />
-                            Sign Out
-                          </Button>
-                        </form>
-                      </>
-                    ) : (
-                      <>
-                        <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)}>
-                          <Button variant="outline" size="sm" className="w-full justify-start bg-transparent">
-                            <User className="h-4 w-4 mr-2" />
-                            Sign In
-                          </Button>
-                        </Link>
-                        <Link href="/auth/sign-up" onClick={() => setMobileMenuOpen(false)}>
-                          <Button size="sm" className="w-full bg-amber-500 hover:bg-amber-600 text-white">
-                            Join Now
-                          </Button>
-                        </Link>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
         </div>
       </div>
     </header>
   )
-}
-
-export async function HeaderWrapper() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  let profile = null
-  if (user) {
-    const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single()
-    profile = data
-  }
-
-  return <Header user={user} profile={profile} />
 }

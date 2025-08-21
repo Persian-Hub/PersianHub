@@ -18,13 +18,11 @@ import {
   Search,
   Bell,
   Settings,
-  Menu,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,7 +42,6 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children, title, searchPlaceholder, actions }: AdminLayoutProps) {
   const pathname = usePathname()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [counts, setCounts] = useState({
     businesses: 0,
     pendingBusinesses: 0,
@@ -156,128 +153,104 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
     },
   ]
 
-  const SidebarContent = () => (
-    <>
-      <div className="p-6 border-b border-sidebar-border/50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-sidebar-primary rounded-lg flex items-center justify-center">
-            <span className="text-sidebar-primary-foreground font-bold text-lg">PH</span>
+  return (
+    <div className="flex h-screen bg-muted/30">
+      <div className="w-72 bg-sidebar border-r border-sidebar-border flex flex-col shadow-lg">
+        <div className="p-6 border-b border-sidebar-border/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-sidebar-primary rounded-lg flex items-center justify-center">
+              <span className="text-sidebar-primary-foreground font-bold text-lg">PH</span>
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-sidebar-foreground font-serif">Persian Hub</h2>
+              <p className="text-sm text-sidebar-foreground/70 font-sans">Admin Panel</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-bold text-sidebar-foreground font-serif">Persian Hub</h2>
-            <p className="text-sm text-sidebar-foreground/70 font-sans">Admin Panel</p>
-          </div>
+        </div>
+
+        <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto">
+          {navigation.map((section) => (
+            <div key={section.name}>
+              <h3 className="text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider mb-4 font-sans">
+                {section.name}
+              </h3>
+              <div className="space-y-2">
+                {section.items.map((item) => {
+                  const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href))
+
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={cn(
+                        "group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200",
+                        isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
+                          : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      )}
+                    >
+                      <item.icon
+                        className={cn(
+                          "mr-3 h-5 w-5 flex-shrink-0 transition-colors",
+                          isActive
+                            ? "text-sidebar-primary-foreground"
+                            : "text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground",
+                        )}
+                      />
+                      <span className="flex-1 font-sans">{item.name}</span>
+                      {item.badge && (
+                        <Badge
+                          variant={item.urgent ? "destructive" : "secondary"}
+                          className={cn(
+                            "ml-3 text-xs font-medium",
+                            isActive
+                              ? "bg-sidebar-primary-foreground/20 text-sidebar-primary-foreground"
+                              : item.urgent
+                                ? "bg-destructive text-destructive-foreground animate-pulse"
+                                : "bg-sidebar-accent text-sidebar-accent-foreground",
+                          )}
+                        >
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-sidebar-border/50 space-y-2">
+          <Link
+            href="/"
+            className="flex items-center px-4 py-3 text-sm font-medium text-sidebar-foreground/80 rounded-xl hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors font-sans"
+          >
+            <ArrowLeft className="mr-3 h-5 w-5 text-sidebar-foreground/60" />
+            Back to Directory
+          </Link>
+          <button className="flex items-center w-full px-4 py-3 text-sm font-medium text-sidebar-foreground/80 rounded-xl hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors font-sans">
+            <LogOut className="mr-3 h-5 w-5 text-sidebar-foreground/60" />
+            Logout
+          </button>
         </div>
       </div>
 
-      <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto">
-        {navigation.map((section) => (
-          <div key={section.name}>
-            <h3 className="text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider mb-4 font-sans">
-              {section.name}
-            </h3>
-            <div className="space-y-2">
-              {section.items.map((item) => {
-                const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href))
-
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={cn(
-                      "group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200",
-                      isActive
-                        ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
-                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    )}
-                  >
-                    <item.icon
-                      className={cn(
-                        "mr-3 h-5 w-5 flex-shrink-0 transition-colors",
-                        isActive
-                          ? "text-sidebar-primary-foreground"
-                          : "text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground",
-                      )}
-                    />
-                    <span className="flex-1 font-sans">{item.name}</span>
-                    {item.badge && (
-                      <Badge
-                        variant={item.urgent ? "destructive" : "secondary"}
-                        className={cn(
-                          "ml-3 text-xs font-medium",
-                          isActive
-                            ? "bg-sidebar-primary-foreground/20 text-sidebar-primary-foreground"
-                            : item.urgent
-                              ? "bg-destructive text-destructive-foreground animate-pulse"
-                              : "bg-sidebar-accent text-sidebar-accent-foreground",
-                        )}
-                      >
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        ))}
-      </nav>
-
-      <div className="p-4 border-t border-sidebar-border/50 space-y-2">
-        <Link
-          href="/"
-          onClick={() => setSidebarOpen(false)}
-          className="flex items-center px-4 py-3 text-sm font-medium text-sidebar-foreground/80 rounded-xl hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors font-sans"
-        >
-          <ArrowLeft className="mr-3 h-5 w-5 text-sidebar-foreground/60" />
-          Back to Directory
-        </Link>
-        <button className="flex items-center w-full px-4 py-3 text-sm font-medium text-sidebar-foreground/80 rounded-xl hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors font-sans">
-          <LogOut className="mr-3 h-5 w-5 text-sidebar-foreground/60" />
-          Logout
-        </button>
-      </div>
-    </>
-  )
-
-  return (
-    <div className="flex h-screen bg-muted/30">
-      <div className="hidden lg:flex w-72 bg-sidebar border-r border-sidebar-border flex-col shadow-lg">
-        <SidebarContent />
-      </div>
-
-      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetContent side="left" className="w-72 p-0 bg-sidebar border-sidebar-border">
-          <div className="flex flex-col h-full">
-            <SidebarContent />
-          </div>
-        </SheetContent>
-      </Sheet>
-
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-card border-b border-border px-4 lg:px-6 py-4 shadow-sm">
+        <header className="bg-card border-b border-border px-6 py-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
-                <Menu className="h-6 w-6" />
-              </Button>
-
-              <div>
-                <h1 className="text-xl lg:text-2xl font-bold text-foreground font-serif">{title}</h1>
-                <p className="text-sm text-muted-foreground font-sans mt-1 hidden sm:block">
-                  Manage your Persian Hub platform
-                </p>
-              </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground font-serif">{title}</h1>
+              <p className="text-sm text-muted-foreground font-sans mt-1">Manage your Persian Hub platform</p>
             </div>
 
-            <div className="flex items-center gap-2 lg:gap-4">
+            <div className="flex items-center gap-4">
               {searchPlaceholder && (
-                <div className="relative hidden md:block">
+                <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder={searchPlaceholder}
-                    className="pl-10 w-60 lg:w-80 bg-input border-border focus:ring-ring font-sans"
+                    className="pl-10 w-80 bg-input border-border focus:ring-ring font-sans"
                   />
                 </div>
               )}
@@ -294,6 +267,9 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80">
+                  <DropdownMenuLabel className="font-semibold">Notifications</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+
                   {counts.pendingBusinesses === 0 && counts.pendingReviews === 0 ? (
                     <DropdownMenuItem disabled className="text-center py-4">
                       <span className="text-muted-foreground">No pending items</span>
@@ -368,7 +344,7 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <Button variant="ghost" size="sm" className="hidden sm:flex">
+              <Button variant="ghost" size="sm">
                 <Settings className="h-5 w-5" />
               </Button>
 
@@ -382,7 +358,7 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
         </header>
 
         <main className="flex-1 overflow-auto bg-background">
-          <div className="p-4 lg:p-6">{children}</div>
+          <div className="p-6">{children}</div>
         </main>
       </div>
     </div>
