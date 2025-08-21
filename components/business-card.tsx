@@ -41,28 +41,44 @@ export function BusinessCard({ business }: BusinessCardProps) {
     business.distance !== undefined && business.distance < 999 ? `${business.distance.toFixed(1)} km away` : null
 
   const getCurrentDayHours = () => {
-    if (!business.opening_hours) return null
+    console.log("[v0] Business:", business.name)
+    console.log("[v0] Opening hours raw data:", business.opening_hours)
+    console.log("[v0] Opening hours type:", typeof business.opening_hours)
 
-    const dayMapping = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
-    const dayKey = dayMapping[new Date().getDay()]
-    const dayData = business.opening_hours[dayKey]
+    if (!business.opening_hours) {
+      console.log("[v0] No opening hours data found")
+      return null
+    }
 
-    if (!dayData) return null
+    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+    const currentDay = dayNames[new Date().getDay()]
+    const dayData = business.opening_hours[currentDay]
 
-    if (typeof dayData === "string") {
-      return dayData === "closed" ? "Closed" : dayData
-    } else if (typeof dayData === "object") {
-      if (dayData.is_closed === false || dayData.isClosed === false) {
-        if (dayData.open && dayData.close) {
-          return `${dayData.open} - ${dayData.close}`
-        } else if (dayData.openTime && dayData.closeTime) {
-          return `${dayData.openTime} - ${dayData.closeTime}`
-        }
-      } else if (dayData.hours && dayData.hours !== "closed") {
-        return dayData.hours
+    console.log("[v0] Current day:", currentDay, "Day data:", dayData, "Type:", typeof dayData)
+
+    if (!dayData) {
+      console.log("[v0] No data for current day")
+      return null
+    }
+
+    // Handle structured format: {open: "09:00", close: "17:00", closed: false}
+    if (typeof dayData === "object" && dayData.hasOwnProperty("closed")) {
+      console.log("[v0] Using structured format")
+      if (dayData.closed === true) {
+        return "Closed"
+      }
+      if (dayData.open && dayData.close) {
+        return `${dayData.open} - ${dayData.close}`
       }
     }
 
+    // Handle legacy string format for backward compatibility
+    if (typeof dayData === "string") {
+      console.log("[v0] Using legacy string format")
+      return dayData === "closed" ? "Closed" : dayData
+    }
+
+    console.log("[v0] No valid format found, returning Closed")
     return "Closed"
   }
 

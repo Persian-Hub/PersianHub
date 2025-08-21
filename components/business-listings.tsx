@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Filter, MapPin } from "lucide-react"
+import { Filter, MapPin, Search } from "lucide-react"
 import { BusinessCard } from "@/components/business-card"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 interface Business {
   id: string
@@ -28,6 +29,8 @@ interface Business {
   reviews?: { rating: number }[]
   avg_rating?: number
   review_count?: number
+  owner_keywords?: string[]
+  _searchKeywords?: string[]
 }
 
 // Calculate distance between two coordinates using Haversine formula
@@ -42,9 +45,56 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c
 }
 
+function calculateSearchScore(business: Business, searchTerm: string): number {
+  if (!searchTerm.trim()) return 0
+
+  const term = searchTerm.toLowerCase()
+  let score = 0
+
+  // High weight for exact name matches
+  if (business.name.toLowerCase().includes(term)) {
+    score += business.name.toLowerCase() === term ? 100 : 50
+  }
+
+  // Medium weight for category matches
+  if (business.categories?.name.toLowerCase().includes(term)) {
+    score += 30
+  }
+
+  // Medium weight for subcategory matches
+  if (business.subcategories?.name.toLowerCase().includes(term)) {
+    score += 25
+  }
+
+  // Medium weight for services matches
+  const services = business.business_services?.map((s) => s.service_name.toLowerCase()) || []
+  if (services.some((service) => service.includes(term))) {
+    score += 20
+  }
+
+  // Lower weight for description matches
+  if (business.description?.toLowerCase().includes(term)) {
+    score += 10
+  }
+
+  // Lower weight for address matches
+  if (business.address.toLowerCase().includes(term)) {
+    score += 5
+  }
+
+  // Lowest weight for owner keywords matches (hidden field)
+  if ((business as any)._searchKeywords?.some((keyword: string) => keyword.toLowerCase().includes(term))) {
+    score += 3
+  }
+
+  return score
+}
+
 export function BusinessListings() {
   const [businesses, setBusinesses] = useState<Business[]>([])
+  const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locationPermission, setLocationPermission] = useState<"granted" | "denied" | "prompt">("prompt")
 
@@ -60,18 +110,27 @@ export function BusinessListings() {
       const { data: businessData, error } = await supabase
         .from("businesses")
         .select(`
-          *,
+          id,
+          name,
+          slug,
+          description,
+          address,
+          latitude,
+          longitude,
+          images,
+          is_verified,
+          is_sponsored,
+          is_promoted,
+          created_at,
+          owner_keywords,
           profiles!owner_id(full_name),
           categories(name),
           subcategories(name),
           business_services(service_name),
-          reviews(rating),
-          latitude,
-          longitude,
-          is_promoted
+          reviews(rating)
         `)
         .eq("status", "approved")
-        .limit(20)
+        .limit(50)
 
       if (error) throw error
 
@@ -81,10 +140,14 @@ export function BusinessListings() {
           reviews.length > 0 ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0
         const reviewCount = reviews.length
 
+        const { owner_keywords, ...publicBusiness } = business
+
         return {
-          ...business,
+          ...publicBusiness,
           avg_rating: avgRating,
           review_count: reviewCount,
+          // Keep owner_keywords only for internal search scoring
+          _searchKeywords: owner_keywords,
         }
       })
 
@@ -93,6 +156,45 @@ export function BusinessListings() {
       console.error("Error fetching businesses:", error)
       return []
     }
+  }
+
+  const searchAndFilterBusinesses = (businessData: Business[], searchTerm: string) => {
+    if (!searchTerm.trim()) {
+      return businessData
+    }
+
+    // Calculate search scores and filter businesses with scores > 0
+    const businessesWithScores = businessData
+      .map((business) => ({
+        ...business,
+        searchScore: calculateSearchScore(business, searchTerm),
+      }))
+      .filter((business) => business.searchScore > 0)
+
+    // Sort by search relevance, then by promotion status, then by distance/date
+    businessesWithScores.sort((a, b) => {
+      // First by search score (higher is better)
+      if (a.searchScore !== b.searchScore) {
+        return b.searchScore - a.searchScore
+      }
+
+      // Then promoted businesses first
+      if (a.is_promoted && !b.is_promoted) return -1
+      if (!a.is_promoted && b.is_promoted) return 1
+
+      // Then sponsored businesses
+      if (a.is_sponsored && !b.is_sponsored) return -1
+      if (!a.is_sponsored && b.is_sponsored) return 1
+
+      // Finally by distance or creation date
+      if (a.distance !== undefined && b.distance !== undefined) {
+        return (a.distance || 999) - (b.distance || 999)
+      }
+
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
+
+    return businessesWithScores
   }
 
   const requestLocation = () => {
@@ -177,6 +279,11 @@ export function BusinessListings() {
   }, [userLocation])
 
   useEffect(() => {
+    const filtered = searchAndFilterBusinesses(businesses, searchTerm)
+    setFilteredBusinesses(filtered)
+  }, [businesses, searchTerm])
+
+  useEffect(() => {
     // Try to get location on component mount
     requestLocation()
   }, [])
@@ -193,8 +300,9 @@ export function BusinessListings() {
     )
   }
 
-  const promotedBusinesses = businesses.filter((b) => b.is_promoted)
-  const regularBusinesses = businesses.filter((b) => !b.is_promoted)
+  const displayBusinesses = searchTerm.trim() ? filteredBusinesses : businesses
+  const promotedBusinesses = displayBusinesses.filter((b) => b.is_promoted)
+  const regularBusinesses = displayBusinesses.filter((b) => !b.is_promoted)
 
   return (
     <section className="py-12">
@@ -216,17 +324,38 @@ export function BusinessListings() {
             )}
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Filter className="h-4 w-4" />
-              <span>{businesses.length} results</span>
-              {userLocation && <span className="text-blue-600">• Sorted by distance</span>}
+              <span>{displayBusinesses.length} results</span>
+              {userLocation && !searchTerm && <span className="text-blue-600">• Sorted by distance</span>}
+              {searchTerm && <span className="text-green-600">• Sorted by relevance</span>}
               {promotedBusinesses.length > 0 && <span className="text-amber-600">• Promoted first</span>}
             </div>
           </div>
         </div>
 
+        <div className="mb-8">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              type="text"
+              placeholder="Search businesses, services, categories..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full"
+            />
+          </div>
+          {searchTerm && (
+            <p className="text-sm text-gray-600 mt-2">
+              Searching for "{searchTerm}" - {displayBusinesses.length} results found
+            </p>
+          )}
+        </div>
+
         {promotedBusinesses.length > 0 && (
           <div className="mb-12">
             <div className="flex items-center gap-2 mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Promoted Businesses</h3>
+              <h3 className="text-xl font-semibold text-gray-900">
+                {searchTerm ? "Promoted Results" : "Promoted Businesses"}
+              </h3>
               <div className="h-px bg-gradient-to-r from-amber-400 to-orange-500 flex-1"></div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -241,7 +370,9 @@ export function BusinessListings() {
           <div>
             {promotedBusinesses.length > 0 && (
               <div className="flex items-center gap-2 mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">All Businesses</h3>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  {searchTerm ? "Other Results" : "All Businesses"}
+                </h3>
                 <div className="h-px bg-gray-300 flex-1"></div>
               </div>
             )}
@@ -253,9 +384,16 @@ export function BusinessListings() {
           </div>
         )}
 
-        {businesses.length === 0 && (
+        {displayBusinesses.length === 0 && !loading && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No businesses found. Be the first to add your business!</p>
+            {searchTerm ? (
+              <div>
+                <p className="text-gray-500 mb-2">No businesses found for "{searchTerm}"</p>
+                <p className="text-sm text-gray-400">Try different keywords or check your spelling</p>
+              </div>
+            ) : (
+              <p className="text-gray-500">No businesses found. Be the first to add your business!</p>
+            )}
           </div>
         )}
       </div>

@@ -122,6 +122,7 @@ export async function createBusiness(prevState: any, formData: FormData) {
       images: JSON.parse(formData.get("images")?.toString() || "[]"),
       opening_hours: JSON.parse(formData.get("opening_hours")?.toString() || "{}"),
       services: JSON.parse(formData.get("services")?.toString() || "[]"),
+      owner_keywords: JSON.parse(formData.get("owner_keywords")?.toString() || "[]"),
     }
 
     // Generate unique slug

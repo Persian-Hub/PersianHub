@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
 import { ImageUpload } from "@/components/ui/image-upload"
+import { KeywordsInput } from "@/components/ui/keywords-input"
 import { useRouter } from "next/navigation"
 import { Loader2, Plus, X } from "lucide-react"
 import { createBusiness } from "@/lib/actions"
@@ -29,7 +30,11 @@ interface AddBusinessFormProps {
 }
 
 interface WorkingHours {
-  [key: string]: string
+  [key: string]: {
+    open: string
+    close: string
+    closed: boolean
+  }
 }
 
 const DAYS = [
@@ -49,14 +54,15 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
   const [newService, setNewService] = useState("")
   const [images, setImages] = useState<string[]>([])
   const [defaultImage, setDefaultImage] = useState<string>()
+  const [ownerKeywords, setOwnerKeywords] = useState<string[]>([])
   const [workingHours, setWorkingHours] = useState<WorkingHours>({
-    mon: "closed",
-    tue: "closed",
-    wed: "closed",
-    thu: "closed",
-    fri: "closed",
-    sat: "closed",
-    sun: "closed",
+    monday: { open: "09:00", close: "17:00", closed: false },
+    tuesday: { open: "09:00", close: "17:00", closed: false },
+    wednesday: { open: "09:00", close: "17:00", closed: false },
+    thursday: { open: "09:00", close: "17:00", closed: false },
+    friday: { open: "09:00", close: "17:00", closed: false },
+    saturday: { open: "09:00", close: "17:00", closed: false },
+    sunday: { open: "09:00", close: "17:00", closed: true },
   })
 
   const [formData, setFormData] = useState({
@@ -113,24 +119,14 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
     }
   }
 
-  const handleHoursChange = (day: string, value: string) => {
-    setWorkingHours((prev) => ({ ...prev, [day]: value }))
-  }
-
-  const formatTimeInput = (value: string): string => {
-    const cleaned = value.replace(/[^\d:]/g, "")
-    if (cleaned.length <= 2) {
-      return cleaned
-    } else if (cleaned.length <= 4) {
-      return cleaned.slice(0, 2) + ":" + cleaned.slice(2)
-    } else {
-      return cleaned.slice(0, 5)
-    }
-  }
-
-  const validateTimeFormat = (time: string): boolean => {
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
-    return timeRegex.test(time)
+  const handleHoursChange = (day: string, field: string, value: string | boolean) => {
+    setWorkingHours((prev) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        [field]: value,
+      },
+    }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -150,6 +146,7 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
       formDataObj.append("images", JSON.stringify(images))
       formDataObj.append("opening_hours", JSON.stringify(workingHours))
       formDataObj.append("services", JSON.stringify(services))
+      formDataObj.append("owner_keywords", JSON.stringify(ownerKeywords))
 
       const result = await createBusiness(null, formDataObj)
 
@@ -307,51 +304,36 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
               {DAYS.map((day) => (
                 <div key={day.key} className="flex items-center gap-4">
                   <div className="w-24 text-sm font-medium">{day.label}</div>
-                  <Select
-                    value={workingHours[day.key] === "closed" ? "closed" : "open"}
-                    onValueChange={(value) => {
-                      if (value === "closed") {
-                        handleHoursChange(day.key, "closed")
-                      } else {
-                        handleHoursChange(day.key, "09:00 - 17:00")
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="w-24">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="closed">Closed</SelectItem>
-                      <SelectItem value="open">Open</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={!workingHours[day.label.toLowerCase()]?.closed}
+                      onChange={(e) => handleHoursChange(day.label.toLowerCase(), "closed", !e.target.checked)}
+                      className="rounded"
+                    />
+                    <span className="text-sm">Open</span>
+                  </div>
 
-                  {workingHours[day.key] !== "closed" && (
+                  {!workingHours[day.label.toLowerCase()]?.closed && (
                     <div className="flex items-center gap-2">
                       <Input
-                        type="text"
-                        placeholder="09:00"
-                        className="w-20"
-                        value={workingHours[day.key]?.split(" - ")[0] || ""}
-                        onChange={(e) => {
-                          const formatted = formatTimeInput(e.target.value)
-                          const endTime = workingHours[day.key]?.split(" - ")[1] || "17:00"
-                          handleHoursChange(day.key, `${formatted} - ${endTime}`)
-                        }}
+                        type="time"
+                        value={workingHours[day.label.toLowerCase()]?.open || "09:00"}
+                        onChange={(e) => handleHoursChange(day.label.toLowerCase(), "open", e.target.value)}
+                        className="w-32"
                       />
-                      <span>-</span>
+                      <span>to</span>
                       <Input
-                        type="text"
-                        placeholder="17:00"
-                        className="w-20"
-                        value={workingHours[day.key]?.split(" - ")[1] || ""}
-                        onChange={(e) => {
-                          const formatted = formatTimeInput(e.target.value)
-                          const startTime = workingHours[day.key]?.split(" - ")[0] || "09:00"
-                          handleHoursChange(day.key, `${startTime} - ${formatted}`)
-                        }}
+                        type="time"
+                        value={workingHours[day.label.toLowerCase()]?.close || "17:00"}
+                        onChange={(e) => handleHoursChange(day.label.toLowerCase(), "close", e.target.value)}
+                        className="w-32"
                       />
                     </div>
+                  )}
+
+                  {workingHours[day.label.toLowerCase()]?.closed && (
+                    <span className="text-sm text-gray-500 italic">Closed</span>
                   )}
                 </div>
               ))}
@@ -388,6 +370,26 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="space-y-4">
+            <KeywordsInput
+              value={ownerKeywords}
+              onChange={setOwnerKeywords}
+              label="Extra Keywords for Search (Hidden from Users)"
+              placeholder="نان , kebab, kabab, bread, جوجه کباب"
+              maxKeywords={20}
+              maxKeywordLength={50}
+              className="space-y-2"
+            />
+            <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md border border-blue-200">
+              <p className="font-medium text-blue-800 mb-1">Search Optimization Tips:</p>
+              <p>
+                Add keywords in both Persian and English that customers might use to find your business. This field is
+                hidden from users and only used to improve search results. Include alternative spellings, brand names,
+                and common terms related to your services.
+              </p>
+            </div>
           </div>
 
           <div className="flex justify-end space-x-4">

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
+import { KeywordsInput } from "@/components/ui/keywords-input"
 import { Minus, Save, ArrowLeft, Upload, LinkIcon } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import type { google } from "google-maps"
@@ -28,6 +29,7 @@ interface Business {
   subcategory_id: string
   images?: string[]
   opening_hours?: any
+  owner_keywords?: string[]
   status: string
   latitude?: number
   longitude?: number
@@ -88,6 +90,8 @@ const EditBusinessFormComponent = ({
     saturday: { open: "09:00", close: "17:00", closed: false },
     sunday: { open: "09:00", close: "17:00", closed: true },
   })
+
+  const [ownerKeywords, setOwnerKeywords] = useState<string[]>(business.owner_keywords || [])
 
   useEffect(() => {
     console.log("[v0] Loading working hours from business:", business.opening_hours)
@@ -210,6 +214,7 @@ const EditBusinessFormComponent = ({
         subcategory_id: formData.subcategory_id,
         images: images,
         opening_hours: validatedWorkingHours, // Use validated working hours
+        owner_keywords: ownerKeywords,
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,
       }
@@ -569,6 +574,31 @@ const EditBusinessFormComponent = ({
                 {hours.closed && <span className="text-sm text-gray-500 italic">Closed</span>}
               </div>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Search Keywords</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <KeywordsInput
+            value={ownerKeywords}
+            onChange={setOwnerKeywords}
+            label="Extra Keywords for Search (Hidden from Users)"
+            placeholder="نان , kebab, kabab, bread, جوجه کباب"
+            maxKeywords={20}
+            maxKeywordLength={50}
+            className="space-y-2"
+          />
+          <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md border border-blue-200">
+            <p className="font-medium text-blue-800 mb-1">Search Optimization Tips:</p>
+            <p>
+              Add keywords in both Persian and English that customers might use to find your business. This field is
+              hidden from users and only used to improve search results. Include alternative spellings, brand names, and
+              common terms related to your services.
+            </p>
           </div>
         </CardContent>
       </Card>

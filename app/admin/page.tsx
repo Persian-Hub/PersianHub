@@ -38,7 +38,16 @@ async function getAdminData() {
   const { data: recentBusinesses } = await supabase
     .from("businesses")
     .select(`
-      *,
+      id,
+      name,
+      description,
+      address,
+      phone,
+      email,
+      website,
+      images,
+      status,
+      created_at,
       profiles!owner_id(full_name),
       categories(name)
     `)

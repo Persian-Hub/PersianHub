@@ -6,7 +6,7 @@ async function getStats() {
 
   try {
     const [businessesResult, categoriesResult] = await Promise.all([
-      supabase.from("businesses").select("id", { count: "exact" }),
+      supabase.from("businesses").select("id", { count: "exact" }).eq("status", "approved"),
       supabase.from("categories").select("id", { count: "exact" }),
     ])
 

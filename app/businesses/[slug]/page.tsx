@@ -16,7 +16,22 @@ async function getBusiness(slug: string) {
   const { data: business, error } = await supabase
     .from("businesses")
     .select(`
-      *,
+      id,
+      name,
+      slug,
+      description,
+      address,
+      phone,
+      email,
+      website,
+      latitude,
+      longitude,
+      images,
+      opening_hours,
+      is_verified,
+      is_sponsored,
+      status,
+      created_at,
       categories(name, slug),
       subcategories(name, slug),
       profiles!owner_id(full_name),
@@ -60,44 +75,31 @@ function formatOpeningHours(openingHours: any) {
 
   if (!openingHours || typeof openingHours !== "object") return null
 
-  const dayMapping = {
-    mon: "Monday",
-    tue: "Tuesday",
-    wed: "Wednesday",
-    thu: "Thursday",
-    fri: "Friday",
-    sat: "Saturday",
-    sun: "Sunday",
-  }
+  const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
-  const abbreviatedDays = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-
-  return abbreviatedDays.map((abbrevDay) => {
-    const dayData = openingHours[abbrevDay]
-    console.log(`[v0] ${abbrevDay} data:`, dayData)
+  return dayNames.map((dayName) => {
+    const dayData = openingHours[dayName]
+    console.log(`[v0] ${dayName} data:`, dayData)
 
     let hours = "Closed"
 
     if (dayData) {
-      if (typeof dayData === "string") {
-        hours = dayData === "closed" ? "Closed" : dayData
-      } else if (typeof dayData === "object") {
-        if (dayData.is_closed === false || dayData.isClosed === false) {
-          if (dayData.open && dayData.close) {
-            hours = `${dayData.open} - ${dayData.close}`
-          } else if (dayData.openTime && dayData.closeTime) {
-            hours = `${dayData.openTime} - ${dayData.closeTime}`
-          }
-        } else if (!dayData.is_closed && !dayData.isClosed && dayData.open && dayData.close) {
+      // Handle structured format: {open: "09:00", close: "17:00", closed: false}
+      if (typeof dayData === "object" && dayData.hasOwnProperty("closed")) {
+        if (dayData.closed === true) {
+          hours = "Closed"
+        } else if (dayData.open && dayData.close) {
           hours = `${dayData.open} - ${dayData.close}`
-        } else if (dayData.hours && dayData.hours !== "closed") {
-          hours = dayData.hours
         }
+      }
+      // Handle legacy string format for backward compatibility
+      else if (typeof dayData === "string") {
+        hours = dayData === "closed" ? "Closed" : dayData
       }
     }
 
     return {
-      day: dayMapping[abbrevDay as keyof typeof dayMapping],
+      day: dayName.charAt(0).toUpperCase() + dayName.slice(1),
       hours: hours,
     }
   })
