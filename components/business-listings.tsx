@@ -177,10 +177,6 @@ export function BusinessListings() {
       if (error) throw error
 
       const businessesWithStats = (businessData || []).map((business) => {
-        console.log(
-          `[v0] Business: ${business.name} - Promoted: ${business.is_promoted}, Verified: ${business.is_verified}, Sponsored: ${business.is_sponsored}`,
-        )
-
         const reviews = business.reviews || []
         const avgRating =
           reviews.length > 0 ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0
@@ -198,7 +194,7 @@ export function BusinessListings() {
       })
 
       const promotedCount = businessesWithStats.filter((b) => b.is_promoted).length
-      console.log(`[v0] Total businesses: ${businessesWithStats.length}, Promoted: ${promotedCount}`)
+      console.log(`[v0] Fetched ${businessesWithStats.length} businesses, ${promotedCount} promoted`)
 
       return businessesWithStats
     } catch (error) {
@@ -257,7 +253,6 @@ export function BusinessListings() {
         const { latitude, longitude } = position.coords
         setUserLocation({ lat: latitude, lng: longitude })
         setLocationPermission("granted")
-        console.log("[v0] User location obtained:", { latitude, longitude })
       },
       (error) => {
         console.log("Error getting location:", error)
@@ -285,10 +280,8 @@ export function BusinessListings() {
               business.latitude,
               business.longitude,
             )
-            console.log(`[v0] Distance to ${business.name}: ${distance.toFixed(1)}km`)
             return { ...business, distance: Math.round(distance * 10) / 10 } // Round to 1 decimal place
           }
-          console.log(`[v0] No coordinates for ${business.name}`)
           return { ...business, distance: 999 } // Put businesses without coordinates at the end
         })
 
