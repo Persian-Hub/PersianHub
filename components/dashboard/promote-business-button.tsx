@@ -49,7 +49,14 @@ export function PromoteBusinessButton({ businessId, businessName }: PromoteBusin
     setIsLoading(true)
     try {
       await createPromotionPayment(businessId)
+      toast.error("Payment redirect failed")
+      setIsLoading(false)
     } catch (error) {
+      if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+        // This is expected - the redirect is happening
+        return
+      }
+
       console.error("Error creating promotion payment:", error)
       toast.error(error instanceof Error ? error.message : "Failed to create promotion payment")
       setIsLoading(false)

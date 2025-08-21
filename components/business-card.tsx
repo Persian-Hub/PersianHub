@@ -50,7 +50,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
       return null
     }
 
-    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+    const dayNames = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
     const currentDay = dayNames[new Date().getDay()]
     const dayData = business.opening_hours[currentDay]
 
@@ -61,7 +61,11 @@ export function BusinessCard({ business }: BusinessCardProps) {
       return null
     }
 
-    // Handle structured format: {open: "09:00", close: "17:00", closed: false}
+    if (typeof dayData === "string") {
+      console.log("[v0] Using string format from database")
+      return dayData === "closed" ? "Closed" : dayData
+    }
+
     if (typeof dayData === "object" && dayData.hasOwnProperty("closed")) {
       console.log("[v0] Using structured format")
       if (dayData.closed === true) {
@@ -70,12 +74,6 @@ export function BusinessCard({ business }: BusinessCardProps) {
       if (dayData.open && dayData.close) {
         return `${dayData.open} - ${dayData.close}`
       }
-    }
-
-    // Handle legacy string format for backward compatibility
-    if (typeof dayData === "string") {
-      console.log("[v0] Using legacy string format")
-      return dayData === "closed" ? "Closed" : dayData
     }
 
     console.log("[v0] No valid format found, returning Closed")

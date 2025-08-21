@@ -123,6 +123,7 @@ export function BusinessListings() {
           is_promoted,
           created_at,
           owner_keywords,
+          opening_hours,
           profiles!owner_id(full_name),
           categories(name),
           subcategories(name),

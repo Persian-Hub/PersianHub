@@ -118,7 +118,7 @@ export async function getPromotionSettings() {
   return settings
 }
 
-export async function updatePromotionSettings(promotionCost: number, promotionDurationDays: number, currency = "USD") {
+export async function updatePromotionSettings(promotionCost: number, promotionDurationDays: number, currency = "AUD") {
   const supabase = createServerActionClient({ cookies })
 
   // Check if user is admin

@@ -10,7 +10,7 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 })
 
 export const STRIPE_CONFIG = {
-  currency: "usd",
+  currency: "aud",
   payment_method_types: ["card"],
   mode: "payment" as const,
 } as const
