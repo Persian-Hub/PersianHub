@@ -1,9 +1,12 @@
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Edit, Eye, MapPin, Star, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { PromoteBusinessButton } from "./promote-business-button"
+import { syncPromotionStatus } from "@/lib/actions/promotion"
 
 interface Business {
   id: string
@@ -33,6 +36,20 @@ export function BusinessList({ businesses }: BusinessListProps) {
         return "bg-red-100 text-red-800"
       default:
         return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  const handleSyncPromotion = async (businessId: string) => {
+    try {
+      const result = await syncPromotionStatus(businessId)
+      if (result.success) {
+        window.location.reload() // Refresh to show updated status
+      } else {
+        alert(result.message)
+      }
+    } catch (error) {
+      console.error("Error syncing promotion:", error)
+      alert("Failed to sync promotion status")
     }
   }
 
@@ -102,7 +119,17 @@ export function BusinessList({ businesses }: BusinessListProps) {
 
                   <div className="flex space-x-2">
                     {business.status === "approved" && !business.is_promoted && (
-                      <PromoteBusinessButton businessId={business.id} businessName={business.name} />
+                      <>
+                        <PromoteBusinessButton businessId={business.id} businessName={business.name} />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSyncPromotion(business.id)}
+                          className="text-xs"
+                        >
+                          Sync Status
+                        </Button>
+                      </>
                     )}
 
                     {business.status === "approved" && (

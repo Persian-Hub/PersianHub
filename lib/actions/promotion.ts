@@ -236,3 +236,91 @@ export async function getBusinessPromotions(businessId?: string) {
 
   return promotions
 }
+
+export async function syncPromotionStatus(businessId: string) {
+  console.log("[v0] Syncing promotion status for business:", businessId)
+
+  const supabase = createServerActionClient({ cookies })
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    throw new Error("User not authenticated")
+  }
+
+  // Get pending promotions for this business
+  const { data: pendingPromotions, error: promotionError } = await supabase
+    .from("promotions")
+    .select("*")
+    .eq("business_id", businessId)
+    .eq("user_id", user.id)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+
+  if (promotionError) {
+    console.error("[v0] Error fetching pending promotions:", promotionError)
+    throw new Error("Failed to fetch promotion status")
+  }
+
+  if (!pendingPromotions || pendingPromotions.length === 0) {
+    console.log("[v0] No pending promotions found")
+    return { success: false, message: "No pending promotions found" }
+  }
+
+  const latestPromotion = pendingPromotions[0]
+  console.log("[v0] Found pending promotion:", latestPromotion.id)
+
+  try {
+    // Check Stripe session status
+    const session = await stripe.checkout.sessions.retrieve(latestPromotion.stripe_session_id)
+    console.log("[v0] Stripe session status:", session.payment_status)
+
+    if (session.payment_status === "paid") {
+      // Update promotion to completed
+      const promotionEndDate = new Date()
+      promotionEndDate.setDate(promotionEndDate.getDate() + 30) // 30 days
+
+      const { error: updateError } = await supabase
+        .from("promotions")
+        .update({
+          status: "completed",
+          promotion_end_date: promotionEndDate.toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", latestPromotion.id)
+
+      if (updateError) {
+        console.error("[v0] Error updating promotion:", updateError)
+        throw new Error("Failed to update promotion status")
+      }
+
+      // Update business promotion status
+      const { error: businessError } = await supabase
+        .from("businesses")
+        .update({
+          is_promoted: true,
+          promoted_until: promotionEndDate.toISOString(),
+        })
+        .eq("id", businessId)
+
+      if (businessError) {
+        console.error("[v0] Error updating business:", businessError)
+        throw new Error("Failed to update business promotion status")
+      }
+
+      console.log("[v0] Promotion status synced successfully")
+      revalidatePath("/dashboard")
+
+      return { success: true, message: "Promotion activated successfully" }
+    } else {
+      console.log("[v0] Payment not completed yet, status:", session.payment_status)
+      return { success: false, message: "Payment not completed yet" }
+    }
+  } catch (error) {
+    console.error("[v0] Error syncing promotion status:", error)
+    throw new Error("Failed to sync promotion status")
+  }
+}
