@@ -2,9 +2,14 @@
 
 import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
-import { stripe, STRIPE_CONFIG } from "@/lib/stripe"
+import Stripe from "stripe"
+import { STRIPE_CONFIG } from "@/lib/stripe"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2024-12-18.acacia",
+})
 
 export async function createPromotionPayment(businessId: string) {
   console.log("[v0] Starting promotion payment creation for business:", businessId)
@@ -274,7 +279,7 @@ export async function syncPromotionStatus(businessId: string) {
   console.log("[v0] Found pending promotion:", latestPromotion.id)
 
   try {
-    // Check Stripe session status
+    console.log("[v0] Retrieving Stripe session with secret key...")
     const session = await stripe.checkout.sessions.retrieve(latestPromotion.stripe_session_id)
     console.log("[v0] Stripe session status:", session.payment_status)
 
