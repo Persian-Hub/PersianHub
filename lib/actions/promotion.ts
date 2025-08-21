@@ -117,8 +117,8 @@ export async function createPromotionPayment(businessId: string) {
         userId: user.id,
         promotionDurationDays: settings.promotion_duration_days.toString(),
       },
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/dashboard/businesses/${businessId}?promotion=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/dashboard/businesses/${businessId}?promotion=cancelled`,
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/dashboard?promotion=success&business=${businessId}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/dashboard?promotion=cancelled&business=${businessId}`,
     })
 
     console.log("[v0] Stripe session created:", session.id)
