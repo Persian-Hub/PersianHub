@@ -95,6 +95,11 @@ export async function Header() {
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard/analytics" className="cursor-pointer">
+                        Analytics
+                      </Link>
+                    </DropdownMenuItem>
                     {profile?.role === "admin" && (
                       <>
                         <DropdownMenuSeparator />

@@ -130,7 +130,10 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
   const navigation = [
     {
       name: "Main",
-      items: [{ name: "Dashboard", href: "/admin", icon: LayoutDashboard }],
+      items: [
+        { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+        { name: "Analytics", href: "/admin/analytics", icon: TrendingUp },
+      ],
     },
     {
       name: "Content Review",

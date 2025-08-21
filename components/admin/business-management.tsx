@@ -25,6 +25,7 @@ interface Business {
   website: string
   status: string
   is_verified: boolean
+  is_promoted?: boolean
   is_sponsored: boolean
   created_at: string
   images?: string[]
@@ -273,6 +274,9 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
                     <h3 className="font-semibold text-gray-700">{business.name}</h3>
                     <Badge variant={getStatusBadgeVariant(business.status)}>{business.status}</Badge>
                     {business.is_verified && <Badge variant="outline">Verified</Badge>}
+                    {business.is_promoted && (
+                      <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 text-white">Promoted</Badge>
+                    )}
                     {business.is_sponsored && <Badge variant="outline">Sponsored</Badge>}
                   </div>
                   <div className="text-sm text-gray-600 space-y-1">

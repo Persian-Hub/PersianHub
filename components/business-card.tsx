@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Star, MapPin, Clock, Camera, TrendingUp } from "lucide-react"
+import { analytics, useAnalyticsUser } from "@/lib/analytics"
 
 interface Business {
   id: string
@@ -33,6 +34,8 @@ interface BusinessCardProps {
 }
 
 export function BusinessCard({ business }: BusinessCardProps) {
+  const { getCurrentUserId } = useAnalyticsUser()
+
   const services = business.business_services?.map((s) => s.service_name) || []
   const avgRating = business.avg_rating || 0
   const reviewCount = business.review_count || 0
@@ -73,25 +76,37 @@ export function BusinessCard({ business }: BusinessCardProps) {
   const isOpen = todayHours && todayHours !== "Closed"
   const hoursDisplay = todayHours || "Hours not available"
 
-  const handleDirections = (e: React.MouseEvent) => {
+  const handleDirections = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+
+    const userId = await getCurrentUserId()
+    await analytics.trackDirections(business.id, userId)
+
     const encodedAddress = encodeURIComponent(business.address)
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`, "_blank")
   }
 
-  const handleCall = (e: React.MouseEvent) => {
+  const handleCall = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+
+    const userId = await getCurrentUserId()
+    await analytics.trackCall(business.id, userId)
+
     const phoneNumber = business.phone || ""
     if (phoneNumber) {
       window.location.href = `tel:${phoneNumber}`
     }
   }
 
-  const handleViewDetail = (e: React.MouseEvent) => {
+  const handleViewDetail = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+
+    const userId = await getCurrentUserId()
+    await analytics.trackView(business.id, userId)
+
     window.location.href = `/businesses/${business.slug}`
   }
 

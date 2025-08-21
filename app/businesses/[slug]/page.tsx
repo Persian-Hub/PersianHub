@@ -9,6 +9,7 @@ import { GoogleMap } from "@/components/ui/google-map"
 import { ImageGallery } from "@/components/ui/image-gallery"
 import { BusinessActions } from "@/components/business-actions"
 import { ReviewForm } from "@/components/review-form"
+import { trackBusinessView } from "@/lib/analytics"
 
 async function getBusiness(slug: string) {
   const supabase = createClient()
@@ -29,6 +30,7 @@ async function getBusiness(slug: string) {
       images,
       opening_hours,
       is_verified,
+      is_promoted,
       is_sponsored,
       status,
       created_at,
@@ -75,11 +77,19 @@ function formatOpeningHours(openingHours: any) {
 
   if (!openingHours || typeof openingHours !== "object") return null
 
-  const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+  const dayMap = {
+    mon: "Monday",
+    tue: "Tuesday",
+    wed: "Wednesday",
+    thu: "Thursday",
+    fri: "Friday",
+    sat: "Saturday",
+    sun: "Sunday",
+  }
 
-  return dayNames.map((dayName) => {
-    const dayData = openingHours[dayName]
-    console.log(`[v0] ${dayName} data:`, dayData)
+  return Object.entries(dayMap).map(([abbrev, fullName]) => {
+    const dayData = openingHours[abbrev]
+    console.log(`[v0] ${abbrev} (${fullName}) data:`, dayData)
 
     let hours = "Closed"
 
@@ -92,14 +102,14 @@ function formatOpeningHours(openingHours: any) {
           hours = `${dayData.open} - ${dayData.close}`
         }
       }
-      // Handle legacy string format for backward compatibility
+      // Handle string format: "09:00 - 17:00" or "closed"
       else if (typeof dayData === "string") {
         hours = dayData === "closed" ? "Closed" : dayData
       }
     }
 
     return {
-      day: dayName.charAt(0).toUpperCase() + dayName.slice(1),
+      day: fullName,
       hours: hours,
     }
   })
@@ -115,6 +125,8 @@ export default async function BusinessPage({
   if (!business) {
     notFound()
   }
+
+  await trackBusinessView(business.id)
 
   const reviews = await getBusinessReviews(business.id)
   const averageRating = calculateAverageRating(reviews)
@@ -143,6 +155,11 @@ export default async function BusinessPage({
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm text-blue-600 font-medium">{business.categories?.name}</span>
                     {business.is_verified && <Badge className="bg-teal-600 text-white text-xs">Verified</Badge>}
+                    {business.is_promoted && (
+                      <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 text-white text-xs">
+                        Promoted
+                      </Badge>
+                    )}
                   </div>
                   <h1 className="text-2xl font-bold text-gray-900 mb-2">{business.name}</h1>
                   <div className="flex items-center gap-2">
