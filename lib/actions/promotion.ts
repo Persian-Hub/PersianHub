@@ -1,6 +1,7 @@
 "use server"
 
 import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import Stripe from "stripe"
 import { STRIPE_CONFIG } from "@/lib/stripe"
@@ -122,7 +123,7 @@ export async function createPromotionPayment(businessId: string) {
         userId: user.id,
         promotionDurationDays: settings.promotion_duration_days.toString(),
       },
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/dashboard?promotion=success&business=${businessId}`,
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/dashboard?promotion=success&business=${businessId}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/dashboard?promotion=cancelled&business=${businessId}`,
     })
 
@@ -288,7 +289,18 @@ export async function syncPromotionStatus(businessId: string) {
     console.log("[v0] Stripe session status:", session.payment_status)
 
     if (session.payment_status === "paid") {
-      const { data: settings, error: settingsError } = await supabase
+      const adminSupabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+          },
+        },
+      )
+
+      const { data: settings, error: settingsError } = await adminSupabase
         .from("promotion_settings")
         .select("promotion_duration_days")
         .eq("is_active", true)
@@ -304,8 +316,8 @@ export async function syncPromotionStatus(businessId: string) {
       const promotionEndDate = new Date()
       promotionEndDate.setDate(promotionEndDate.getDate() + (settings?.promotion_duration_days || 30))
 
-      // Update promotion to completed
-      const { error: updateError } = await supabase
+      // Update promotion to completed using admin client
+      const { error: updateError } = await adminSupabase
         .from("promotions")
         .update({
           status: "completed",
@@ -320,7 +332,8 @@ export async function syncPromotionStatus(businessId: string) {
         throw new Error("Failed to update promotion status")
       }
 
-      const { error: businessError } = await supabase
+      // Update business promotion status using admin client
+      const { error: businessError } = await adminSupabase
         .from("businesses")
         .update({
           is_promoted: true,
@@ -348,7 +361,12 @@ export async function syncPromotionStatus(businessId: string) {
 }
 
 export async function updateExpiredPromotions() {
-  const supabase = createServerActionClient({ cookies })
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
 
   const now = new Date().toISOString()
 
