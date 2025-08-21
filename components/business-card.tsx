@@ -33,6 +33,10 @@ interface BusinessCardProps {
 }
 
 export function BusinessCard({ business }: BusinessCardProps) {
+  console.log(
+    `[v0] BusinessCard - ${business.name}: is_promoted=${business.is_promoted}, is_verified=${business.is_verified}, is_sponsored=${business.is_sponsored}`,
+  )
+
   const services = business.business_services?.map((s) => s.service_name) || []
   const avgRating = business.avg_rating || 0
   const reviewCount = business.review_count || 0
@@ -128,10 +132,13 @@ export function BusinessCard({ business }: BusinessCardProps) {
 
           <div className="absolute top-3 left-3 flex flex-col gap-1">
             {business.is_promoted && (
-              <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white text-xs px-2 py-1 shadow-md">
-                <TrendingUp className="h-3 w-3 mr-1" />
-                Promoted
-              </Badge>
+              <>
+                {console.log(`[v0] Rendering PROMOTED badge for ${business.name}`)}
+                <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white text-xs px-2 py-1 shadow-md">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  Promoted
+                </Badge>
+              </>
             )}
             {business.is_verified && (
               <Badge className="bg-teal-600 hover:bg-teal-700 text-white text-xs px-2 py-1">Verified</Badge>

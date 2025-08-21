@@ -7,6 +7,13 @@ import { cookies } from "next/headers"
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
 export async function POST(req: NextRequest) {
+  console.log("[v0] =================================")
+  console.log("[v0] STRIPE WEBHOOK RECEIVED")
+  console.log("[v0] Timestamp:", new Date().toISOString())
+  console.log("[v0] Request URL:", req.url)
+  console.log("[v0] Request method:", req.method)
+  console.log("[v0] =================================")
+
   console.log("[v0] Stripe webhook received")
 
   const body = await req.text()
@@ -91,7 +98,6 @@ export async function POST(req: NextRequest) {
           .from("businesses")
           .update({
             is_promoted: true,
-            promoted_until: endDate.toISOString(),
           })
           .eq("id", businessId)
           .select()
@@ -144,4 +150,13 @@ export async function POST(req: NextRequest) {
     console.error("[v0] Error processing webhook:", error)
     return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 })
   }
+}
+
+export async function GET() {
+  console.log("[v0] Webhook endpoint GET request received")
+  return NextResponse.json({
+    message: "Stripe webhook endpoint is active",
+    timestamp: new Date().toISOString(),
+    url: "/api/webhooks/stripe",
+  })
 }

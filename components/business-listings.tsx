@@ -177,6 +177,10 @@ export function BusinessListings() {
       if (error) throw error
 
       const businessesWithStats = (businessData || []).map((business) => {
+        console.log(
+          `[v0] Business: ${business.name} - Promoted: ${business.is_promoted}, Verified: ${business.is_verified}, Sponsored: ${business.is_sponsored}`,
+        )
+
         const reviews = business.reviews || []
         const avgRating =
           reviews.length > 0 ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0
@@ -192,6 +196,9 @@ export function BusinessListings() {
           _searchKeywords: owner_keywords,
         }
       })
+
+      const promotedCount = businessesWithStats.filter((b) => b.is_promoted).length
+      console.log(`[v0] Total businesses: ${businessesWithStats.length}, Promoted: ${promotedCount}`)
 
       return businessesWithStats
     } catch (error) {
