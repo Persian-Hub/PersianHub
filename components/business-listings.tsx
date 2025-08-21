@@ -17,6 +17,7 @@ interface Business {
   images?: string[]
   is_verified: boolean
   is_sponsored: boolean
+  is_promoted?: boolean
   categories?: { name: string }
   subcategories?: { name: string }
   opening_hours?: Record<string, any>
@@ -66,7 +67,8 @@ export function BusinessListings() {
           business_services(service_name),
           reviews(rating),
           latitude,
-          longitude
+          longitude,
+          is_promoted
         `)
         .eq("status", "approved")
         .limit(20)
@@ -139,10 +141,32 @@ export function BusinessListings() {
           return { ...business, distance: 999 } // Put businesses without coordinates at the end
         })
 
-        // Sort by distance (nearest first)
-        businessesWithDistance.sort((a, b) => (a.distance || 999) - (b.distance || 999))
+        businessesWithDistance.sort((a, b) => {
+          // Promoted businesses first
+          if (a.is_promoted && !b.is_promoted) return -1
+          if (!a.is_promoted && b.is_promoted) return 1
+
+          // Then sponsored businesses
+          if (a.is_sponsored && !b.is_sponsored) return -1
+          if (!a.is_sponsored && b.is_sponsored) return 1
+
+          // Then by distance
+          return (a.distance || 999) - (b.distance || 999)
+        })
         setBusinesses(businessesWithDistance)
       } else {
+        businessData.sort((a, b) => {
+          // Promoted businesses first
+          if (a.is_promoted && !b.is_promoted) return -1
+          if (!a.is_promoted && b.is_promoted) return 1
+
+          // Then sponsored businesses
+          if (a.is_sponsored && !b.is_sponsored) return -1
+          if (!a.is_sponsored && b.is_sponsored) return 1
+
+          // Then by creation date (newest first)
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        })
         setBusinesses(businessData)
       }
 
@@ -169,6 +193,9 @@ export function BusinessListings() {
     )
   }
 
+  const promotedBusinesses = businesses.filter((b) => b.is_promoted)
+  const regularBusinesses = businesses.filter((b) => !b.is_promoted)
+
   return (
     <section className="py-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -191,16 +218,40 @@ export function BusinessListings() {
               <Filter className="h-4 w-4" />
               <span>{businesses.length} results</span>
               {userLocation && <span className="text-blue-600">• Sorted by distance</span>}
+              {promotedBusinesses.length > 0 && <span className="text-amber-600">• Promoted first</span>}
             </div>
           </div>
         </div>
 
-        {/* Business Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {businesses.map((business) => (
-            <BusinessCard key={business.id} business={business} />
-          ))}
-        </div>
+        {promotedBusinesses.length > 0 && (
+          <div className="mb-12">
+            <div className="flex items-center gap-2 mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Promoted Businesses</h3>
+              <div className="h-px bg-gradient-to-r from-amber-400 to-orange-500 flex-1"></div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {promotedBusinesses.map((business) => (
+                <BusinessCard key={business.id} business={business} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {regularBusinesses.length > 0 && (
+          <div>
+            {promotedBusinesses.length > 0 && (
+              <div className="flex items-center gap-2 mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">All Businesses</h3>
+                <div className="h-px bg-gray-300 flex-1"></div>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {regularBusinesses.map((business) => (
+                <BusinessCard key={business.id} business={business} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {businesses.length === 0 && (
           <div className="text-center py-12">

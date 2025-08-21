@@ -4,7 +4,7 @@ import type React from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Star, MapPin, Clock, Camera } from "lucide-react"
+import { Star, MapPin, Clock, Camera, TrendingUp } from "lucide-react"
 
 interface Business {
   id: string
@@ -15,6 +15,7 @@ interface Business {
   images?: string[]
   is_verified: boolean
   is_sponsored: boolean
+  is_promoted?: boolean
   categories?: { name: string; slug: string }
   subcategories?: { name: string; slug: string }
   opening_hours?: Record<string, any>
@@ -92,7 +93,11 @@ export function BusinessCard({ business }: BusinessCardProps) {
   }
 
   return (
-    <Card className="w-full max-w-sm mx-auto bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200">
+    <Card
+      className={`w-full max-w-sm mx-auto bg-white shadow-sm rounded-lg overflow-hidden border ${
+        business.is_promoted ? "border-amber-300 ring-2 ring-amber-200 shadow-lg" : "border-gray-200"
+      }`}
+    >
       <CardContent className="p-0">
         <div className="relative">
           <div className="w-full h-48 bg-gray-200 flex items-center justify-center relative">
@@ -106,11 +111,18 @@ export function BusinessCard({ business }: BusinessCardProps) {
               <Camera className="h-12 w-12 text-gray-400" />
             )}
           </div>
-          {business.is_verified && (
-            <Badge className="absolute top-3 left-3 bg-teal-600 hover:bg-teal-700 text-white text-xs px-2 py-1">
-              Verified
-            </Badge>
-          )}
+
+          <div className="absolute top-3 left-3 flex flex-col gap-1">
+            {business.is_promoted && (
+              <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white text-xs px-2 py-1 shadow-md">
+                <TrendingUp className="h-3 w-3 mr-1" />
+                Promoted
+              </Badge>
+            )}
+            {business.is_verified && (
+              <Badge className="bg-teal-600 hover:bg-teal-700 text-white text-xs px-2 py-1">Verified</Badge>
+            )}
+          </div>
         </div>
 
         <div className="p-4 space-y-3">
@@ -141,7 +153,14 @@ export function BusinessCard({ business }: BusinessCardProps) {
           </div>
 
           <div className="space-y-2 pt-2">
-            <Button onClick={handleViewDetail} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+            <Button
+              onClick={handleViewDetail}
+              className={`w-full text-white ${
+                business.is_promoted
+                  ? "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
+            >
               View Details
             </Button>
 

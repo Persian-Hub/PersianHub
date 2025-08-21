@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Edit, Eye, MapPin } from "lucide-react"
+import { Edit, Eye, MapPin, Star, TrendingUp } from "lucide-react"
 import Link from "next/link"
+import { PromoteBusinessButton } from "./promote-business-button"
 
 interface Business {
   id: string
@@ -13,6 +14,8 @@ interface Business {
   rejection_reason?: string
   categories?: { name: string }
   created_at: string
+  is_promoted?: boolean
+  is_sponsored?: boolean
 }
 
 interface BusinessListProps {
@@ -55,7 +58,21 @@ export function BusinessList({ businesses }: BusinessListProps) {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h3 className="font-serif font-semibold text-lg text-gray-900 mb-1">{business.name}</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-serif font-semibold text-lg text-gray-900">{business.name}</h3>
+                      {business.is_promoted && (
+                        <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-white">
+                          <TrendingUp className="h-3 w-3 mr-1" />
+                          Promoted
+                        </Badge>
+                      )}
+                      {business.is_sponsored && (
+                        <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+                          <Star className="h-3 w-3 mr-1" />
+                          Sponsored
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex items-center text-gray-500 mb-2">
                       <MapPin className="h-4 w-4 mr-1" />
                       <span className="font-sans text-sm">{business.address}</span>
@@ -84,6 +101,10 @@ export function BusinessList({ businesses }: BusinessListProps) {
                   </p>
 
                   <div className="flex space-x-2">
+                    {business.status === "approved" && !business.is_promoted && (
+                      <PromoteBusinessButton businessId={business.id} businessName={business.name} />
+                    )}
+
                     {business.status === "approved" && (
                       <Link href={`/businesses/${business.slug}`}>
                         <Button variant="outline" size="sm">

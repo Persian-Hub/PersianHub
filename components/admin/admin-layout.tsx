@@ -18,6 +18,7 @@ import {
   Search,
   Bell,
   Settings,
+  TrendingUp,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -49,6 +50,8 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
     reviews: 0,
     pendingReviews: 0,
     categories: 0,
+    promotions: 0,
+    activePromotions: 0,
   })
   const [pendingItems, setPendingItems] = useState<{
     businesses: Array<{ id: string; name: string; created_at: string }>
@@ -68,6 +71,8 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
           reviewsResult,
           pendingReviewsResult,
           categoriesResult,
+          promotionsResult,
+          activePromotionsResult,
         ] = await Promise.all([
           supabase.from("businesses").select("*", { count: "exact", head: true }),
           supabase.from("businesses").select("*", { count: "exact", head: true }).eq("status", "pending"),
@@ -75,6 +80,8 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
           supabase.from("reviews").select("*", { count: "exact", head: true }),
           supabase.from("reviews").select("*", { count: "exact", head: true }).eq("status", "pending"),
           supabase.from("categories").select("*", { count: "exact", head: true }),
+          supabase.from("promotions").select("*", { count: "exact", head: true }),
+          supabase.from("promotions").select("*", { count: "exact", head: true }).eq("status", "active"),
         ])
 
         setCounts({
@@ -84,6 +91,8 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
           reviews: reviewsResult.count || 0,
           pendingReviews: pendingReviewsResult.count || 0,
           categories: categoriesResult.count || 0,
+          promotions: promotionsResult.count || 0,
+          activePromotions: activePromotionsResult.count || 0,
         })
 
         const [pendingBusinessesData, pendingReviewsData] = await Promise.all([
@@ -149,6 +158,7 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
         { name: "Users", href: "/admin/users", icon: Users, badge: counts.users.toString() },
         { name: "All Reviews", href: "/admin/reviews", icon: Star, badge: counts.reviews.toString() },
         { name: "Categories", href: "/admin/categories", icon: Tag, badge: counts.categories.toString() },
+        { name: "Promotions", href: "/admin/promotions", icon: TrendingUp, badge: counts.activePromotions.toString() },
       ],
     },
   ]
