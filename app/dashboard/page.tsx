@@ -8,14 +8,21 @@ import { RecentReviews } from "@/components/dashboard/recent-reviews"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
+import Stripe from "stripe"
 
-async function checkAndUpdatePromotionStatus(userId: string, businessId?: string) {
+async function checkAndUpdatePromotionStatus(userId: string, businessId?: string, sessionId?: string) {
   if (!businessId) return
 
-  const supabase = createClient()
+  console.log("[v0] Checking promotion status for business:", businessId, "session:", sessionId)
 
-  // Check if there's a completed Stripe session for this business that hasn't been processed
-  const { data: pendingPromotion, error } = await supabase
+  const adminSupabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+
+  let query = adminSupabase
     .from("promotions")
     .select("*")
     .eq("business_id", businessId)
@@ -23,42 +30,80 @@ async function checkAndUpdatePromotionStatus(userId: string, businessId?: string
     .eq("status", "pending")
     .order("created_at", { ascending: false })
     .limit(1)
-    .single()
 
-  if (error || !pendingPromotion) return
+  if (sessionId) {
+    query = query.eq("stripe_session_id", sessionId)
+  }
+
+  const { data: pendingPromotion, error } = await query.single()
+
+  if (error || !pendingPromotion) {
+    console.log("[v0] No pending promotion found")
+    return
+  }
 
   console.log("[v0] Found pending promotion, checking Stripe session:", pendingPromotion.stripe_session_id)
 
   try {
-    // In a real implementation, you would check Stripe session status here
-    // For now, we'll assume if we reach this point, payment was successful
-    const promotionEndDate = new Date()
-    promotionEndDate.setDate(promotionEndDate.getDate() + 30) // 30 days promotion
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: "2024-12-18.acacia",
+    })
 
-    // Update promotion status to completed
-    const { error: updateError } = await supabase
-      .from("promotions")
-      .update({
-        status: "completed",
-        promotion_end_date: promotionEndDate.toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", pendingPromotion.id)
+    const session = await stripe.checkout.sessions.retrieve(pendingPromotion.stripe_session_id)
+    console.log("[v0] Stripe session payment status:", session.payment_status)
 
-    if (!updateError) {
-      // Update business promotion status
-      await supabase
+    if (session.payment_status === "paid") {
+      const { data: settings, error: settingsError } = await adminSupabase
+        .from("promotion_settings")
+        .select("promotion_duration_days")
+        .eq("is_active", true)
+        .single()
+
+      if (settingsError) {
+        console.error("[v0] Error fetching settings:", settingsError)
+        return
+      }
+
+      const promotionStartDate = new Date()
+      const promotionEndDate = new Date()
+      promotionEndDate.setDate(promotionEndDate.getDate() + (settings?.promotion_duration_days || 30))
+
+      console.log("[v0] Updating promotion to completed status")
+      const { error: updateError } = await adminSupabase
+        .from("promotions")
+        .update({
+          status: "completed",
+          promotion_start_date: promotionStartDate.toISOString(),
+          promotion_end_date: promotionEndDate.toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", pendingPromotion.id)
+
+      if (updateError) {
+        console.error("[v0] Error updating promotion:", updateError)
+        return
+      }
+
+      console.log("[v0] Updating business promotion status")
+      const { error: businessError } = await adminSupabase
         .from("businesses")
         .update({
           is_promoted: true,
-          promoted_until: promotionEndDate.toISOString(),
+          updated_at: new Date().toISOString(),
         })
         .eq("id", businessId)
 
+      if (businessError) {
+        console.error("[v0] Error updating business:", businessError)
+        return
+      }
+
       console.log("[v0] Promotion status updated successfully")
+    } else {
+      console.log("[v0] Payment not completed, status:", session.payment_status)
     }
   } catch (error) {
-    console.error("[v0] Error updating promotion status:", error)
+    console.error("[v0] Error checking Stripe session:", error)
   }
 }
 
@@ -108,7 +153,7 @@ async function getUserReviews(userId: string) {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { promotion?: string; business?: string }
+  searchParams: { promotion?: string; business?: string; session_id?: string }
 }) {
   const supabase = createClient()
   const {
@@ -120,7 +165,7 @@ export default async function DashboardPage({
   }
 
   if (searchParams.promotion === "success" && searchParams.business) {
-    await checkAndUpdatePromotionStatus(user.id, searchParams.business)
+    await checkAndUpdatePromotionStatus(user.id, searchParams.business, searchParams.session_id)
   }
 
   const [businesses, reviews] = await Promise.all([getUserBusinesses(user.id), getUserReviews(user.id)])
@@ -130,7 +175,6 @@ export default async function DashboardPage({
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Dashboard Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="font-serif font-bold text-3xl text-gray-900 mb-2">Business Dashboard</h1>
@@ -145,7 +189,6 @@ export default async function DashboardPage({
           </Link>
         </div>
 
-        {/* Promotion success message */}
         {searchParams.promotion === "success" && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
             <div className="flex">
@@ -190,16 +233,13 @@ export default async function DashboardPage({
           </div>
         )}
 
-        {/* Dashboard Stats */}
         <DashboardStats businesses={businesses} />
 
         <div className="grid lg:grid-cols-3 gap-8 mt-8">
-          {/* Business List */}
           <div className="lg:col-span-2">
             <BusinessList businesses={businesses} />
           </div>
 
-          {/* Recent Reviews */}
           <div className="lg:col-span-1">
             <RecentReviews reviews={reviews} />
           </div>
