@@ -98,6 +98,45 @@ export function BusinessListings() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locationPermission, setLocationPermission] = useState<"granted" | "denied" | "prompt">("prompt")
 
+  const updateExpiredPromotions = async () => {
+    const supabase = createClient()
+    if (!supabase) return
+
+    try {
+      const now = new Date().toISOString()
+
+      // Find businesses with expired promotions
+      const { data: expiredPromotions, error: fetchError } = await supabase
+        .from("promotions")
+        .select("business_id")
+        .eq("status", "completed")
+        .lt("promotion_end_date", now)
+
+      if (fetchError) {
+        console.error("[v0] Error fetching expired promotions:", fetchError)
+        return
+      }
+
+      if (expiredPromotions && expiredPromotions.length > 0) {
+        const businessIds = expiredPromotions.map((p) => p.business_id)
+
+        // Update businesses to remove promotion status
+        const { error: updateError } = await supabase
+          .from("businesses")
+          .update({ is_promoted: false })
+          .in("id", businessIds)
+
+        if (updateError) {
+          console.error("[v0] Error updating expired promotions:", updateError)
+        } else {
+          console.log("[v0] Updated", businessIds.length, "expired promotions")
+        }
+      }
+    } catch (error) {
+      console.error("[v0] Error in updateExpiredPromotions:", error)
+    }
+  }
+
   const fetchBusinesses = async () => {
     const supabase = createClient()
 
@@ -107,6 +146,8 @@ export function BusinessListings() {
     }
 
     try {
+      await updateExpiredPromotions()
+
       const { data: businessData, error } = await supabase
         .from("businesses")
         .select(`

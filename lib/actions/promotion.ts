@@ -280,18 +280,36 @@ export async function syncPromotionStatus(businessId: string) {
 
   try {
     console.log("[v0] Retrieving Stripe session with secret key...")
-    const session = await stripe.checkout.sessions.retrieve(latestPromotion.stripe_session_id)
+    const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: "2024-12-18.acacia",
+    })
+
+    const session = await stripeClient.checkout.sessions.retrieve(latestPromotion.stripe_session_id)
     console.log("[v0] Stripe session status:", session.payment_status)
 
     if (session.payment_status === "paid") {
-      // Update promotion to completed
-      const promotionEndDate = new Date()
-      promotionEndDate.setDate(promotionEndDate.getDate() + 30) // 30 days
+      const { data: settings, error: settingsError } = await supabase
+        .from("promotion_settings")
+        .select("promotion_duration_days")
+        .eq("is_active", true)
+        .single()
 
+      if (settingsError) {
+        console.error("[v0] Error fetching settings:", settingsError)
+        throw new Error("Failed to fetch promotion settings")
+      }
+
+      // Calculate promotion end date using settings
+      const promotionStartDate = new Date()
+      const promotionEndDate = new Date()
+      promotionEndDate.setDate(promotionEndDate.getDate() + (settings?.promotion_duration_days || 30))
+
+      // Update promotion to completed
       const { error: updateError } = await supabase
         .from("promotions")
         .update({
           status: "completed",
+          promotion_start_date: promotionStartDate.toISOString(),
           promotion_end_date: promotionEndDate.toISOString(),
           updated_at: new Date().toISOString(),
         })
@@ -302,12 +320,11 @@ export async function syncPromotionStatus(businessId: string) {
         throw new Error("Failed to update promotion status")
       }
 
-      // Update business promotion status
       const { error: businessError } = await supabase
         .from("businesses")
         .update({
           is_promoted: true,
-          promoted_until: promotionEndDate.toISOString(),
+          updated_at: new Date().toISOString(),
         })
         .eq("id", businessId)
 
@@ -327,5 +344,39 @@ export async function syncPromotionStatus(businessId: string) {
   } catch (error) {
     console.error("[v0] Error syncing promotion status:", error)
     throw new Error("Failed to sync promotion status")
+  }
+}
+
+export async function updateExpiredPromotions() {
+  const supabase = createServerActionClient({ cookies })
+
+  const now = new Date().toISOString()
+
+  // Find businesses with expired promotions
+  const { data: expiredPromotions, error: fetchError } = await supabase
+    .from("promotions")
+    .select("business_id")
+    .eq("status", "completed")
+    .lt("promotion_end_date", now)
+
+  if (fetchError) {
+    console.error("[v0] Error fetching expired promotions:", fetchError)
+    return
+  }
+
+  if (expiredPromotions && expiredPromotions.length > 0) {
+    const businessIds = expiredPromotions.map((p) => p.business_id)
+
+    // Update businesses to remove promotion status
+    const { error: updateError } = await supabase
+      .from("businesses")
+      .update({ is_promoted: false })
+      .in("id", businessIds)
+
+    if (updateError) {
+      console.error("[v0] Error updating expired promotions:", updateError)
+    } else {
+      console.log("[v0] Updated", businessIds.length, "expired promotions")
+    }
   }
 }
