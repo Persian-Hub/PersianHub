@@ -29,9 +29,8 @@ async function getCategoryRequests() {
       .from("category_requests")
       .select(`
         *,
-        user_profile:profiles!category_requests_requested_by_profiles_fkey(full_name, email),
-        approver_profile:profiles!category_requests_approved_by_profiles_fkey(full_name, email),
-        business:businesses(name)
+        requested_by_user:requested_by(email),
+        businesses(name)
       `)
       .order("created_at", { ascending: false })
 
@@ -53,9 +52,15 @@ async function getCategoryRequests() {
 
     if (requestsError) {
       console.error("Error fetching category requests:", requestsError)
+      console.error("Full error details:", JSON.stringify(requestsError, null, 2))
     }
     if (analyticsError) {
       console.error("Error fetching search analytics:", analyticsError)
+    }
+
+    console.log("[v0] Category requests fetched:", categoryRequests?.length || 0)
+    if (categoryRequests && categoryRequests.length > 0) {
+      console.log("[v0] Sample request data:", JSON.stringify(categoryRequests[0], null, 2))
     }
 
     return {

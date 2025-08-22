@@ -108,6 +108,9 @@ export async function createBusiness(prevState: any, formData: FormData) {
     }
 
     // Extract form data
+    const categoryId = formData.get("category_id")?.toString()
+    const subcategoryId = formData.get("subcategory_id")?.toString()
+
     const businessData = {
       name: formData.get("name")?.toString() || "",
       description: formData.get("description")?.toString() || "",
@@ -115,8 +118,8 @@ export async function createBusiness(prevState: any, formData: FormData) {
       phone: formData.get("phone")?.toString() || "",
       email: formData.get("email")?.toString() || "",
       website: formData.get("website")?.toString() || "",
-      category_id: formData.get("category_id")?.toString() || "",
-      subcategory_id: formData.get("subcategory_id")?.toString() || null,
+      category_id: categoryId && categoryId !== "" && categoryId !== "other" ? categoryId : null,
+      subcategory_id: subcategoryId && subcategoryId !== "" ? subcategoryId : null,
       latitude: formData.get("latitude") ? Number(formData.get("latitude")) : null,
       longitude: formData.get("longitude") ? Number(formData.get("longitude")) : null,
       images: JSON.parse(formData.get("images")?.toString() || "[]"),
@@ -183,7 +186,10 @@ export async function createBusiness(prevState: any, formData: FormData) {
       // Don't fail the business creation if email fails
     }
 
-    return { success: "Business submitted successfully and is pending approval." }
+    return {
+      success: "Business submitted successfully and is pending approval.",
+      businessId: business.id,
+    }
   } catch (error) {
     console.error("Error creating business:", error)
     return { error: "Failed to create business. Please try again." }

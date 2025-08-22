@@ -151,23 +151,6 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
     setLoading(true)
 
     try {
-      if (formData.category_id === "other" && categoryRequest) {
-        const supabase = createClient()
-
-        const { error: categoryError } = await supabase.from("category_requests").insert({
-          proposed_category_name: categoryRequest.proposedCategoryName,
-          proposed_subcategory_name: categoryRequest.proposedSubcategoryName,
-          description: categoryRequest.description,
-          example_businesses: categoryRequest.exampleBusinesses,
-          requested_by: userId,
-        })
-
-        if (categoryError) {
-          notify.error("Error submitting category request. Please try again.")
-          return
-        }
-      }
-
       const formDataObj = new FormData()
 
       Object.entries(formData).forEach(([key, value]) => {
@@ -188,10 +171,34 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
 
       if (result.error) {
         notify.error(result.error)
+        return
+      }
+
+      if (formData.category_id === "other" && categoryRequest && result.businessId) {
+        const supabase = createClient()
+
+        const { error: categoryError } = await supabase.from("category_requests").insert({
+          proposed_category_name: categoryRequest.proposedCategoryName,
+          proposed_subcategory_name: categoryRequest.proposedSubcategoryName,
+          description: categoryRequest.description,
+          example_businesses: categoryRequest.exampleBusinesses,
+          requested_by: userId,
+          business_id: result.businessId, // Associate with the created business
+        })
+
+        if (categoryError) {
+          console.error("Error submitting category request:", categoryError)
+          notify.warn(
+            "Business created successfully, but category request failed. You can submit it later from the edit page.",
+          )
+        } else {
+          notify.success("Business created and category request submitted successfully!")
+        }
       } else {
         notify.success(result.success)
-        router.push("/dashboard")
       }
+
+      router.push("/dashboard")
     } catch (error) {
       console.error("Error adding business:", error)
       notify.error("Error adding business. Please try again.")

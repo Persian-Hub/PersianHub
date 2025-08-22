@@ -38,6 +38,7 @@ interface CategoryRequest {
   updated_at: string
   profiles?: { full_name: string; email: string }
   businesses?: { name: string }
+  business_id?: string
 }
 
 interface SearchAnalytic {
@@ -70,7 +71,7 @@ export function CategoryRequestsManagement({
       request.proposed_category_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.profiles?.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.businesses?.name.toLowerCase().includes(searchTerm.toLowerCase()),
+      request.businesses?.name?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const pendingRequests = filteredRequests.filter((r) => r.status === "pending")
@@ -354,6 +355,19 @@ export function CategoryRequestsManagement({
                             <Badge className="bg-green-100 text-green-800">Auto-Eligible</Badge>
                           )}
                         </div>
+                        {request.businesses?.name ? (
+                          <div className="mb-2">
+                            <span className="text-sm font-medium text-blue-600">
+                              Requested by business: {request.businesses.name}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="mb-2">
+                            <span className="text-sm text-muted-foreground">
+                              No business associated (ID: {request.business_id || "null"})
+                            </span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Users className="h-4 w-4" />
@@ -365,7 +379,14 @@ export function CategoryRequestsManagement({
                           </div>
                           <div className="flex items-center gap-1">
                             <Building2 className="h-4 w-4" />
-                            {request.businesses?.name || "No business"}
+                            <span
+                              className={
+                                request.businesses?.name ? "text-blue-600 font-medium" : "text-muted-foreground"
+                              }
+                            >
+                              {request.businesses?.name ||
+                                `No business associated (ID: ${request.business_id || "null"})`}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -394,18 +415,6 @@ export function CategoryRequestsManagement({
                       )}
 
                       <div>
-                        <Label className="text-sm font-medium">Requested By</Label>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {request.profiles?.full_name} ({request.profiles?.email})
-                        </p>
-                      </div>
-
-                      <div>
-                        <Label className="text-sm font-medium">Auto-Approval Status</Label>
-                        <p className="text-sm text-muted-foreground mt-1">{autoApproval.reason}</p>
-                      </div>
-
-                      <div>
                         <Label htmlFor={`notes-${request.id}`} className="text-sm font-medium">
                           Admin Notes
                         </Label>
@@ -416,6 +425,27 @@ export function CategoryRequestsManagement({
                           onChange={(e) => setAdminNotes((prev) => ({ ...prev, [request.id]: e.target.value }))}
                           className="mt-1"
                         />
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium">Requested By</Label>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {request.profiles?.full_name} ({request.profiles?.email})
+                          {request.businesses?.name ? (
+                            <span className="block mt-1 text-blue-600 font-medium">
+                              Business: {request.businesses.name}
+                            </span>
+                          ) : (
+                            <span className="block mt-1 text-muted-foreground">
+                              No business associated (Business ID: {request.business_id || "null"})
+                            </span>
+                          )}
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium">Auto-Approval Status</Label>
+                        <p className="text-sm text-muted-foreground mt-1">{autoApproval.reason}</p>
                       </div>
 
                       <div className="flex items-center gap-3 pt-4">
@@ -463,6 +493,13 @@ export function CategoryRequestsManagement({
                     <h3 className="font-medium">{request.proposed_category_name}</h3>
                     <p className="text-sm text-muted-foreground">
                       {request.profiles?.full_name} • {new Date(request.updated_at).toLocaleDateString()}
+                      {request.businesses?.name ? (
+                        <span className="block text-blue-600 font-medium">Business: {request.businesses.name}</span>
+                      ) : (
+                        <span className="block text-muted-foreground">
+                          No business associated (ID: {request.business_id || "null"})
+                        </span>
+                      )}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
