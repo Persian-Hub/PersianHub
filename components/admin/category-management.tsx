@@ -14,6 +14,8 @@ import {
   updateSubcategory,
   deleteSubcategory,
 } from "@/lib/actions"
+import { notify } from "@/lib/ui/notify"
+import { confirm } from "@/components/ui/confirm-dialog"
 
 interface Category {
   id: string
@@ -50,10 +52,11 @@ export function CategoryManagement({ categories: initialCategories }: CategoryMa
       const result = await createCategory(null, formData)
 
       if (result.error) {
-        alert(result.error)
+        notify.error(result.error)
       } else if (result.data) {
         setCategories((prev) => [...prev, { ...result.data, subcategories: [] }])
         setNewCategoryName("")
+        notify.success("Category created successfully")
       }
     })
   }
@@ -69,24 +72,34 @@ export function CategoryManagement({ categories: initialCategories }: CategoryMa
       const result = await updateCategory(null, formData)
 
       if (result.error) {
-        alert(result.error)
+        notify.error(result.error)
       } else {
         setCategories((prev) => prev.map((cat) => (cat.id === editingCategory.id ? editingCategory : cat)))
         setEditingCategory(null)
+        notify.success("Category updated successfully")
       }
     })
   }
 
   const handleDeleteCategory = async (categoryId: string) => {
-    if (!confirm("Are you sure? This will also delete all subcategories.")) return
+    const confirmed = await confirm({
+      title: "Delete Category",
+      description: "Are you sure? This will also delete all subcategories.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      variant: "destructive",
+    })
+
+    if (!confirmed) return
 
     startTransition(async () => {
       const result = await deleteCategory(categoryId)
 
       if (result.error) {
-        alert(result.error)
+        notify.error(result.error)
       } else {
         setCategories((prev) => prev.filter((cat) => cat.id !== categoryId))
+        notify.success("Category deleted successfully")
       }
     })
   }
@@ -102,7 +115,7 @@ export function CategoryManagement({ categories: initialCategories }: CategoryMa
       const result = await createSubcategory(null, formData)
 
       if (result.error) {
-        alert(result.error)
+        notify.error(result.error)
       } else if (result.data) {
         setCategories((prev) =>
           prev.map((cat) =>
@@ -111,6 +124,7 @@ export function CategoryManagement({ categories: initialCategories }: CategoryMa
         )
         setNewSubcategoryName("")
         setSelectedCategoryId("")
+        notify.success("Subcategory created successfully")
       }
     })
   }
@@ -126,7 +140,7 @@ export function CategoryManagement({ categories: initialCategories }: CategoryMa
       const result = await updateSubcategory(null, formData)
 
       if (result.error) {
-        alert(result.error)
+        notify.error(result.error)
       } else {
         setCategories((prev) =>
           prev.map((cat) => ({
@@ -137,18 +151,27 @@ export function CategoryManagement({ categories: initialCategories }: CategoryMa
           })),
         )
         setEditingSubcategory(null)
+        notify.success("Subcategory updated successfully")
       }
     })
   }
 
   const handleDeleteSubcategory = async (subcategoryId: string) => {
-    if (!confirm("Are you sure you want to delete this subcategory?")) return
+    const confirmed = await confirm({
+      title: "Delete Subcategory",
+      description: "Are you sure you want to delete this subcategory?",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      variant: "destructive",
+    })
+
+    if (!confirmed) return
 
     startTransition(async () => {
       const result = await deleteSubcategory(subcategoryId)
 
       if (result.error) {
-        alert(result.error)
+        notify.error(result.error)
       } else {
         setCategories((prev) =>
           prev.map((cat) => ({
@@ -156,6 +179,7 @@ export function CategoryManagement({ categories: initialCategories }: CategoryMa
             subcategories: cat.subcategories.filter((sub) => sub.id !== subcategoryId),
           })),
         )
+        notify.success("Subcategory deleted successfully")
       }
     })
   }

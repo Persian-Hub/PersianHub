@@ -16,6 +16,8 @@ import { KeywordsInput } from "@/components/ui/keywords-input"
 import { Minus, Save, ArrowLeft, Upload, LinkIcon } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import type { google } from "google-maps"
+import { notify } from "@/lib/ui/notify"
+import { prompt } from "@/components/ui/prompt-dialog"
 
 interface Business {
   id: string
@@ -245,10 +247,11 @@ const EditBusinessFormComponent = ({
         }
       }
 
+      notify.success("Business updated successfully!")
       router.push(redirectPath)
     } catch (error) {
       console.error("Error updating business:", error)
-      alert("Failed to update business. Please try again.")
+      notify.error("Failed to update business. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -266,13 +269,13 @@ const EditBusinessFormComponent = ({
       for (const file of Array.from(files)) {
         // Validate file type
         if (!file.type.startsWith("image/")) {
-          alert(`${file.name} is not an image file`)
+          notify.error(`${file.name} is not an image file`)
           continue
         }
 
         // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
-          alert(`${file.name} is too large. Maximum size is 5MB`)
+          notify.error(`${file.name} is too large. Maximum size is 5MB`)
           continue
         }
 
@@ -285,7 +288,7 @@ const EditBusinessFormComponent = ({
 
         if (error) {
           console.error("Upload error:", error)
-          alert(`Failed to upload ${file.name}`)
+          notify.error(`Failed to upload ${file.name}`)
           continue
         }
 
@@ -300,10 +303,11 @@ const EditBusinessFormComponent = ({
       if (uploadedUrls.length > 0) {
         setImages((prev) => [...prev, ...uploadedUrls])
         console.log("[v0] Successfully uploaded images:", uploadedUrls)
+        notify.success(`Successfully uploaded ${uploadedUrls.length} image(s)`)
       }
     } catch (error) {
       console.error("Error uploading files:", error)
-      alert("Failed to upload images. Please try again.")
+      notify.error("Failed to upload images. Please try again.")
     } finally {
       setIsLoading(false)
       // Reset file input
@@ -313,10 +317,15 @@ const EditBusinessFormComponent = ({
     }
   }
 
-  const handleAddImageUrl = () => {
-    const imageUrl = prompt("Enter image URL:")
+  const handleAddImageUrl = async () => {
+    const imageUrl = await prompt({
+      title: "Add Image URL",
+      label: "Enter the image URL",
+      placeholder: "https://example.com/image.jpg",
+    })
     if (imageUrl && imageUrl.trim()) {
       setImages((prev) => [...prev, imageUrl.trim()])
+      notify.success("Image URL added successfully")
     }
   }
 

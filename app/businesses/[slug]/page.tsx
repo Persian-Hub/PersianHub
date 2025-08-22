@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Star, Clock, BarChart3 } from "lucide-react"
+import { ArrowLeft, Star, Clock, BarChart3, MapPin } from "lucide-react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { GoogleMap } from "@/components/ui/google-map"
@@ -211,12 +211,18 @@ export default async function BusinessPage({
             {business.latitude && business.longitude && (
               <div className="bg-white rounded-lg p-6 shadow-sm">
                 <h3 className="font-semibold text-lg mb-4">Location</h3>
-                <GoogleMap
-                  latitude={business.latitude}
-                  longitude={business.longitude}
-                  businessName={business.name}
-                  address={business.address}
-                />
+                <div className="rounded-lg overflow-hidden border border-gray-200">
+                  <GoogleMap
+                    latitude={business.latitude}
+                    longitude={business.longitude}
+                    businessName={business.name}
+                    address={business.address}
+                  />
+                </div>
+                <p className="text-sm text-gray-600 mt-3 flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  {business.address}
+                </p>
               </div>
             )}
 

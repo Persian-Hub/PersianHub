@@ -2,8 +2,21 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MapPin, Shield, CheckCircle } from "lucide-react"
+import { createClient } from "@/lib/supabase/server"
 
-export function Footer() {
+async function getBusinessCount() {
+  const supabase = createClient()
+  const { count } = await supabase
+    .from("businesses")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "approved")
+
+  return count || 0
+}
+
+export async function Footer() {
+  const businessCount = await getBusinessCount()
+
   return (
     <footer className="bg-white border-t border-gray-200">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -15,15 +28,16 @@ export function Footer() {
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">🔍</span>
               </div>
-              <span className="font-bold text-xl text-gray-900">Persian Hub  </span>
+              <span className="font-bold text-xl text-gray-900">Persian Hub </span>
             </div>
             <p className="text-gray-600 text-sm leading-relaxed mb-4">
-              Discover amazing local Persian businesses in your area. Connect with services, restaurants, shops, and more.
+              Discover amazing local Persian businesses in your area. Connect with services, restaurants, shops, and
+              more.
             </p>
             <div className="space-y-2 text-sm text-gray-600">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                <span>Over 10,000 active businesses</span>
+                <span>Over {businessCount.toLocaleString()} active businesses</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
@@ -61,7 +75,6 @@ export function Footer() {
                   Mobile App
                 </Link>
               </li>
-              
             </ul>
           </div>
 
@@ -111,7 +124,6 @@ export function Footer() {
               <Button className="w-full bg-blue-600 hover:bg-blue-700">Subscribe</Button>
             </div>
             <div className="mt-6 space-y-2 text-sm text-gray-600">
-              
               <div className="flex items-center gap-2">
                 <span>✉️</span>
                 <span>info@persianhub.com.au</span>

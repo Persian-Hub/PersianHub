@@ -1,0 +1,22 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "rules": {
+    "no-alert": "error",
+    "no-confirm": "error",
+    "no-restricted-globals": [
+      "error",
+      {
+        "name": "alert",
+        "message": "Use notify.* functions from @/lib/ui/notify instead of alert()"
+      },
+      {
+        "name": "confirm",
+        "message": "Use confirm() function from @/components/ui/confirm-dialog instead of confirm()"
+      },
+      {
+        "name": "prompt",
+        "message": "Use prompt() function from @/components/ui/prompt-dialog instead of prompt()"
+      }
+    ]
+  }
+}

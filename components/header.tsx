@@ -39,10 +39,10 @@ export async function Header() {
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <Link href="/businesses" className="text-gray-600 hover:text-cyan-800 font-sans">
-              Browse Businesses
+              Search Businesses
             </Link>
-            <Link href="/categories" className="text-gray-600 hover:text-cyan-800 font-sans">
-              Categories
+            <Link href="/contact" className="text-gray-600 hover:text-cyan-800 font-sans">
+              Contact Us
             </Link>
             <Link href="/about" className="text-gray-600 hover:text-cyan-800 font-sans">
               About

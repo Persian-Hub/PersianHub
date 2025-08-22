@@ -14,6 +14,9 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { updateBusinessStatus, updateBusinessVerification } from "@/lib/actions"
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
+import { notify } from "@/lib/ui/notify"
+import { confirm } from "@/components/ui/confirm-dialog"
+import { prompt } from "@/components/ui/prompt-dialog"
 
 interface Business {
   id: string
@@ -79,15 +82,16 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
       const result = await updateBusinessStatus(businessId, action, action === "rejected" ? actionNotes : undefined)
 
       if (result.error) {
-        alert(result.error)
+        notify.error(result.error)
       } else {
         setActionNotes("")
         setEditingStatus("")
+        notify.success(`Business ${action} successfully`)
         router.refresh()
       }
     } catch (error) {
       console.error("Error updating business:", error)
-      alert("Failed to update business status. Please try again.")
+      notify.error("Failed to update business status. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -100,22 +104,29 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
       const result = await updateBusinessVerification(businessId, !currentStatus)
 
       if (result.error) {
-        alert(result.error)
+        notify.error(result.error)
       } else {
+        notify.success(`Business verification ${!currentStatus ? "added" : "removed"} successfully`)
         router.refresh()
       }
     } catch (error) {
       console.error("Error updating verification:", error)
-      alert("Failed to update verification status. Please try again.")
+      notify.error("Failed to update verification status. Please try again.")
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleDeleteBusiness = async (businessId: string) => {
-    if (!confirm("Are you sure you want to delete this business? This action cannot be undone.")) {
-      return
-    }
+    const confirmed = await confirm({
+      title: "Delete Business",
+      description: "Are you sure you want to delete this business? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      variant: "destructive",
+    })
+
+    if (!confirmed) return
 
     setIsLoading(true)
     const supabase = createClient()
@@ -138,10 +149,11 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
         new_values: { notes: "Business deleted by admin" },
       })
 
+      notify.success("Business deleted successfully")
       router.refresh()
     } catch (error) {
       console.error("Error deleting business:", error)
-      alert("Failed to delete business. Please try again.")
+      notify.error("Failed to delete business. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -194,19 +206,25 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
       if (error) throw error
 
       setIsEditing(false)
+      notify.success("Business updated successfully")
       router.refresh()
     } catch (error) {
       console.error("Error updating business:", error)
-      alert("Failed to update business. Please try again.")
+      notify.error("Failed to update business. Please try again.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleAddImage = () => {
-    const imageUrl = prompt("Enter image URL:")
-    if (imageUrl) {
-      setNewImages([...newImages, imageUrl])
+  const handleAddImage = async () => {
+    const imageUrl = await prompt({
+      title: "Add Image URL",
+      label: "Enter the image URL",
+      placeholder: "https://example.com/image.jpg",
+    })
+    if (imageUrl && imageUrl.trim()) {
+      setNewImages([...newImages, imageUrl.trim()])
+      notify.success("Image URL added successfully")
     }
   }
 

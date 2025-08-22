@@ -4,6 +4,9 @@ import { Montserrat, Open_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import "./globals.css"
+import { Toaster } from "@/components/ui/toaster"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { PromptDialog } from "@/components/ui/prompt-dialog"
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -37,6 +40,9 @@ export default function RootLayout({
     <html lang="en" className={`${montserrat.variable} ${openSans.variable} antialiased`}>
       <body>
         <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+        <Toaster />
+        <ConfirmDialog />
+        <PromptDialog />
         <Analytics />
       </body>
     </html>

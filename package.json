@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "build": "next build",
+    "check-browser-dialogs": "npm run lint:check-dialogs",
     "dev": "next dev",
     "lint": "next lint",
+    "lint:check-dialogs": "grep -r \"alert(\\|confirm(\\|prompt(\" --include=\"*.ts\" --include=\"*.tsx\" --include=\"*.js\" --include=\"*.jsx\" . && echo \"❌ Found browser dialogs - use branded components instead\" && exit 1 || echo \"✅ No browser dialogs found\"",
     "start": "next start"
   },
   "dependencies": {

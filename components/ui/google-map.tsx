@@ -1,7 +1,14 @@
+// components/GoogleMap.tsx
 "use client"
 
 import { useEffect, useRef, useState } from "react"
 import { getGoogleMapsScriptUrl } from "@/lib/actions/maps"
+
+declare global {
+  interface Window {
+    google?: any
+  }
+}
 
 interface GoogleMapProps {
   latitude: number
@@ -11,110 +18,181 @@ interface GoogleMapProps {
   className?: string
 }
 
+const MAP_ID = "5ba0cee0da187a56483a0d90"
+const SCRIPT_ID = "google-maps-js"
+
 export function GoogleMap({ latitude, longitude, businessName, address, className = "" }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
-  const mapInstanceRef = useRef<any | null>(null)
-  const [scriptUrl, setScriptUrl] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [hasError, setHasError] = useState(false)
 
   useEffect(() => {
-    getGoogleMapsScriptUrl().then(setScriptUrl).catch(console.error)
-  }, [])
+    let cancelled = false
 
-  useEffect(() => {
-    if (!scriptUrl) return
+    // Basic validation
+    if (latitude == null || longitude == null || Number.isNaN(latitude) || Number.isNaN(longitude)) {
+      setHasError(true)
+      setIsLoading(false)
+      return
+    }
 
-    const initMap = () => {
-      if (!mapRef.current || !window.google) return
+    async function loadGoogleMaps() {
+      try {
+        const src = await getGoogleMapsScriptUrl()
 
-      const position = { lat: latitude, lng: longitude }
+        function loadScriptOnce() {
+          return new Promise<void>((resolve, reject) => {
+            let script = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null
 
-      const map = new window.google.maps.Map(mapRef.current, {
-        zoom: 15,
-        center: position,
-        mapTypeId: window.google.maps.MapTypeId.ROADMAP,
-        styles: [
-          {
-            featureType: "poi",
-            elementType: "labels",
-            stylers: [{ visibility: "off" }],
-          },
-        ],
-      })
+            if (!script) {
+              script = document.createElement("script")
+              script.id = SCRIPT_ID
+              script.src = src
+              script.async = true
+              script.defer = true
+              script.addEventListener("load", () => resolve(), { once: true })
+              script.addEventListener("error", () => reject(new Error("Maps script failed to load")), { once: true })
+              document.head.appendChild(script)
+            } else if (window.google?.maps) {
+              resolve()
+            } else {
+              script.addEventListener("load", () => resolve(), { once: true })
+              script.addEventListener("error", () => reject(new Error("Maps script failed to load")), { once: true })
+            }
+          })
+        }
 
-      new window.google.maps.Marker({
-        position: position,
-        map: map,
-        title: businessName,
-        icon: {
-          url:
-            "data:image/svg+xml;charset=UTF-8," +
-            encodeURIComponent(`
+        await loadScriptOnce()
+        initMap()
+      } catch (err) {
+        console.error("[GoogleMap] script load failed:", err)
+        setHasError(true)
+        setIsLoading(false)
+      }
+    }
+
+    function initMap() {
+      try {
+        if (cancelled) return
+        const container = mapRef.current
+        if (!container) throw new Error("Map container not available")
+        if (!window.google?.maps) throw new Error("Google Maps not available")
+
+        const position = { lat: latitude, lng: longitude }
+        const map = new window.google.maps.Map(container, {
+          center: position,
+          zoom: 16,
+          mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+          mapId: MAP_ID,
+          zoomControl: true,
+          mapTypeControl: true,
+          scaleControl: true,
+          streetViewControl: true,
+          rotateControl: true,
+          fullscreenControl: true,
+          styles: [{ featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] }],
+        })
+
+        // AdvancedMarkerElement if present (because we loaded libraries=marker)
+        if (window.google.maps.marker?.AdvancedMarkerElement) {
+          const markerEl = document.createElement("div")
+          markerEl.innerHTML = `
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M16 2C11.6 2 8 5.6 8 10C8 16 16 30 16 30S24 16 24 10C24 5.6 20.4 2 16 2ZM16 13C14.3 13 13 11.7 13 10S14.3 7 16 7S19 8.3 19 10S17.7 13 16 13Z" fill="#1C39BB"/>
             </svg>
-          `),
-          scaledSize: new window.google.maps.Size(32, 32),
-          anchor: new window.google.maps.Point(16, 32),
-        },
-      })
+          `
+          markerEl.style.cursor = "pointer"
 
-      const infoWindow = new window.google.maps.InfoWindow({
-        content: `
-          <div style="padding: 8px; max-width: 200px;">
-            <h3 style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600;">${businessName}</h3>
-            <p style="margin: 0; font-size: 12px; color: #666;">${address}</p>
-          </div>
-        `,
-      })
+          const AdvancedMarker = window.google.maps.marker.AdvancedMarkerElement
+          const am = new AdvancedMarker({
+            map,
+            position,
+            content: markerEl,
+            title: businessName,
+          })
 
-      const marker = new window.google.maps.Marker({
-        position: position,
-        map: map,
-        title: businessName,
-      })
+          const info = new window.google.maps.InfoWindow({
+            content: `
+              <div style="padding:8px;max-width:220px;">
+                <h3 style="margin:0 0 4px;font-size:14px;font-weight:600;">${businessName}</h3>
+                <p style="margin:0;font-size:12px;color:#666;">${address}</p>
+              </div>
+            `,
+          })
+          am.addListener("click", () => info.open(map, am))
+        } else {
+          // Classic marker fallback
+          const marker = new window.google.maps.Marker({
+            map,
+            position,
+            title: businessName,
+          })
+          const info = new window.google.maps.InfoWindow({
+            content: `
+              <div style="padding:8px;max-width:220px;">
+                <h3 style="margin:0 0 4px;font-size:14px;font-weight:600;">${businessName}</h3>
+                <p style="margin:0;font-size:12px;color:#666;">${address}</p>
+              </div>
+            `,
+          })
+          marker.addListener("click", () => info.open(map, marker))
+        }
 
-      marker.addListener("click", () => {
-        infoWindow.open(map, marker)
-      })
-
-      mapInstanceRef.current = map
+        setIsLoading(false)
+      } catch (e) {
+        console.error("[GoogleMap] init failed:", e)
+        setHasError(true)
+        setIsLoading(false)
+      }
     }
 
-    if (window.google && window.google.maps) {
-      initMap()
-    } else {
-      const script = document.createElement("script")
-      script.src = scriptUrl
-      script.async = true
-      script.defer = true
-      script.onload = initMap
-      document.head.appendChild(script)
-    }
+    loadGoogleMaps()
 
     return () => {
-      // Cleanup if needed
-      mapInstanceRef.current = null
+      cancelled = true
     }
-  }, [latitude, longitude, businessName, address, scriptUrl])
+  }, [latitude, longitude, businessName, address])
 
-  if (!latitude || !longitude) {
-    return (
-      <div className={`aspect-[2/1] bg-gray-200 rounded-lg flex items-center justify-center ${className}`}>
-        <div className="text-center text-gray-500">
-          <svg className="h-8 w-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-            />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <p>Location not available</p>
+  // Always render the container so the ref exists
+  return (
+    <div className={`relative aspect-[2/1] rounded-lg overflow-hidden ${className}`}>
+      <div ref={mapRef} className="absolute inset-0" />
+
+      {isLoading && !hasError && (
+        <div className="absolute inset-0 bg-gray-100/70 backdrop-blur-xs flex items-center justify-center">
+          <div className="text-center text-gray-600">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2" />
+            <p>Loading map…</p>
+          </div>
         </div>
-      </div>
-    )
-  }
+      )}
 
-  return <div ref={mapRef} className={`aspect-[2/1] rounded-lg ${className}`} style={{ minHeight: "300px" }} />
+      {hasError && (
+        <div className="absolute inset-0 bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center">
+          <div className="text-center p-6">
+            <p className="font-semibold text-gray-700 mb-2">{businessName}</p>
+            <p className="text-sm text-gray-600 mb-4">{address}</p>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Open in Google Maps
+              </a>
+              <a
+                href={`https://maps.apple.com/?q=${encodeURIComponent(address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Open in Apple Maps
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
