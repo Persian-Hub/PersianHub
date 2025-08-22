@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useEffect, useRef, useState } from "react"
 import { Input } from "@/components/ui/input"
-import { MapPin, Loader2 } from "lucide-react"
+import { MapPin, Loader2, CheckCircle, AlertCircle } from "lucide-react"
 
 declare global {
   interface Window {
@@ -31,12 +31,16 @@ export function AddressAutocomplete({
   const autocompleteRef = useRef<any>(null)
 
   const [isLoaded, setIsLoaded] = useState(false)
-  const [isPlaceSelection, setIsPlaceSelection] = useState(false)
+  const [lastSelectedPlace, setLastSelectedPlace] = useState<any>(null)
+  const [lastSelectedAddress, setLastSelectedAddress] = useState("")
   const [showFeedback, setShowFeedback] = useState(false)
+  const [feedbackType, setFeedbackType] = useState<"success" | "warning">("success")
+  const [isPlaceSelecting, setIsPlaceSelecting] = useState(false)
 
   useEffect(() => {
     const checkGoogleMaps = () => {
       if (window.google?.maps?.places) {
+        console.log("[v0] Google Maps Places API loaded successfully")
         setIsLoaded(true)
         return true
       }
@@ -48,6 +52,7 @@ export function AddressAutocomplete({
 
     // Listen for the global Maps loaded event
     const handleMapsLoaded = () => {
+      console.log("[v0] Received gmaps:loaded event")
       checkGoogleMaps()
     }
 
@@ -70,45 +75,106 @@ export function AddressAutocomplete({
   useEffect(() => {
     if (!isLoaded || !inputRef.current || autocompleteRef.current || disabled) return
 
-    const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
-      componentRestrictions: { country: "au" },
-      fields: ["formatted_address", "geometry", "name", "place_id", "address_components"],
-      types: ["address"],
-    })
-    autocompleteRef.current = ac
+    console.log("[v0] Initializing Google Places Autocomplete")
 
-    const handlePlaceChanged = () => {
-      const place = ac.getPlace()
-      if (place?.formatted_address && place?.geometry) {
-        setIsPlaceSelection(true)
-        setShowFeedback(true)
-        onChange(place.formatted_address, place)
-        setTimeout(() => {
-          setShowFeedback(false)
-          setIsPlaceSelection(false)
-        }, 2000)
+    try {
+      const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
+        componentRestrictions: { country: "au" },
+        fields: ["formatted_address", "geometry", "name", "place_id", "address_components"],
+        types: ["address"],
+      })
+      autocompleteRef.current = ac
+
+      const handlePlaceChanged = () => {
+        console.log("[v0] Place changed event triggered")
+        setIsPlaceSelecting(true)
+
+        const place = ac.getPlace()
+        console.log("[v0] Place details:", {
+          hasFormattedAddress: !!place?.formatted_address,
+          hasGeometry: !!place?.geometry,
+          hasLocation: !!place?.geometry?.location,
+          placeId: place?.place_id,
+        })
+
+        if (place?.formatted_address && place?.geometry?.location) {
+          const lat = place.geometry.location.lat()
+          const lng = place.geometry.location.lng()
+
+          console.log("[v0] Successfully extracted coordinates:", { lat, lng, address: place.formatted_address })
+
+          setLastSelectedPlace(place)
+          setLastSelectedAddress(place.formatted_address)
+          setFeedbackType("success")
+          setShowFeedback(true)
+
+          onChange(place.formatted_address, place)
+
+          setTimeout(() => {
+            setIsPlaceSelecting(false)
+          }, 100)
+
+          setTimeout(() => {
+            setShowFeedback(false)
+          }, 3000)
+        } else {
+          console.log("[v0] Place selection incomplete - missing address or coordinates")
+          setFeedbackType("warning")
+          setShowFeedback(true)
+          setIsPlaceSelecting(false)
+
+          setTimeout(() => {
+            setShowFeedback(false)
+          }, 3000)
+        }
       }
-    }
 
-    const listener = ac.addListener("place_changed", handlePlaceChanged)
+      const listener = ac.addListener("place_changed", handlePlaceChanged)
 
-    return () => {
-      if (listener?.remove) listener.remove()
-      autocompleteRef.current = null
+      return () => {
+        if (listener?.remove) listener.remove()
+        autocompleteRef.current = null
+      }
+    } catch (error) {
+      console.error("[v0] Error initializing Google Places Autocomplete:", error)
     }
   }, [isLoaded, disabled, onChange])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!isPlaceSelection) onChange(e.target.value)
+    const newValue = e.target.value
+    console.log("[v0] Input change:", { newValue, isPlaceSelecting, lastSelectedAddress })
+
+    if (isPlaceSelecting) {
+      console.log("[v0] Ignoring input change - place selection in progress")
+      return
+    }
+
+    if (newValue === lastSelectedAddress && lastSelectedPlace) {
+      // User hasn't changed the selected address, keep the place details
+      console.log("[v0] Input matches selected address, preserving place details")
+      onChange(newValue, lastSelectedPlace)
+    } else {
+      if (newValue !== lastSelectedAddress) {
+        console.log("[v0] Input differs from selected address, clearing place details")
+        setLastSelectedPlace(null)
+        setLastSelectedAddress("")
+      }
+      onChange(newValue)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // Prevent form submit while selecting a prediction
     if (e.key === "Enter" && autocompleteRef.current) {
       const predictions = document.querySelector(".pac-container") as HTMLElement | null
-      if (predictions && predictions.style.display !== "none") e.preventDefault()
+      if (predictions && predictions.style.display !== "none") {
+        console.log("[v0] Preventing form submit - autocomplete dropdown is open")
+        e.preventDefault()
+      }
     }
   }
+
+  const hasCoordinates = lastSelectedPlace?.geometry?.location && value === lastSelectedAddress
 
   return (
     <div className="relative">
@@ -119,7 +185,13 @@ export function AddressAutocomplete({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className={`${className ?? ""} ${showFeedback ? "ring-2 ring-green-500 border-green-500" : ""}`}
+          className={`${className ?? ""} ${
+            showFeedback
+              ? feedbackType === "success"
+                ? "ring-2 ring-green-500 border-green-500"
+                : "ring-2 ring-yellow-500 border-yellow-500"
+              : ""
+          }`}
           disabled={disabled || !isLoaded}
         />
 
@@ -131,19 +203,40 @@ export function AddressAutocomplete({
 
         {isLoaded && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <MapPin className="h-4 w-4 text-gray-400" />
+            {hasCoordinates ? (
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            ) : (
+              <MapPin className="h-4 w-4 text-gray-400" />
+            )}
           </div>
         )}
       </div>
 
       {showFeedback && (
-        <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-green-50 border border-green-200 rounded-md text-sm text-green-700 z-10">
+        <div
+          className={`absolute top-full left-0 right-0 mt-1 p-2 border rounded-md text-sm z-10 ${
+            feedbackType === "success"
+              ? "bg-green-50 border-green-200 text-green-700"
+              : "bg-yellow-50 border-yellow-200 text-yellow-700"
+          }`}
+        >
           <div className="flex items-center gap-2">
-            <MapPin className="h-3 w-3" />
-            <span>Address updated with coordinates</span>
+            {feedbackType === "success" ? (
+              <>
+                <CheckCircle className="h-3 w-3" />
+                <span>Address selected with coordinates</span>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="h-3 w-3" />
+                <span>Please select an address from the dropdown for accurate location</span>
+              </>
+            )}
           </div>
         </div>
       )}
+
+      {hasCoordinates && <div className="text-xs text-green-600 mt-1">✓ Location coordinates available</div>}
     </div>
   )
 }

@@ -114,6 +114,14 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
   const handleAddressChange = (address: string, placeDetails?: google.maps.places.PlaceResult) => {
     console.log("[v0] Address change triggered:", { address, hasPlaceDetails: !!placeDetails })
 
+    if (!placeDetails?.geometry?.location) {
+      console.log("[v0] No place details - clearing coordinates")
+      setCoordinates({
+        latitude: null,
+        longitude: null,
+      })
+    }
+
     // Only update address field, preserve all other form data
     setFormData((prevData) => ({ ...prevData, address }))
 
@@ -124,7 +132,7 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
         latitude: lat,
         longitude: lng,
       })
-      console.log("[v0] Coordinates extracted and preserved other form fields:", { lat, lng })
+      console.log("[v0] Coordinates extracted:", { lat, lng })
     }
   }
 
@@ -227,6 +235,34 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
             </div>
           </div>
 
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="font-sans font-medium">
+                Email Address
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="contact@yourbusiness.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="website" className="font-sans font-medium">
+                Website
+              </Label>
+              <Input
+                id="website"
+                type="url"
+                value={formData.website}
+                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                placeholder="https://www.yourbusiness.com"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="description" className="font-sans font-medium">
               Description *
@@ -251,6 +287,16 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
               placeholder="Start typing your business address..."
               required
             />
+            {coordinates.latitude && coordinates.longitude && (
+              <div className="text-sm text-green-600 bg-green-50 p-2 rounded border border-green-200">
+                ✓ Coordinates: {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)}
+              </div>
+            )}
+            {formData.address && !coordinates.latitude && (
+              <div className="text-sm text-yellow-600 bg-yellow-50 p-2 rounded border border-yellow-200">
+                ⚠ Please select an address from the dropdown to get accurate location coordinates
+              </div>
+            )}
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
