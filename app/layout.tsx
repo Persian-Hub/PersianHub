@@ -3,11 +3,11 @@ import type { Metadata } from "next"
 import { Montserrat, Open_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
-import Script from "next/script"                       // ⬅️ add this
 import "./globals.css"
 import { Toaster } from "@/components/ui/toaster"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { PromptDialog } from "@/components/ui/prompt-dialog"
+import { GoogleMapsLoader } from "@/components/google-maps-loader"
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -30,9 +30,7 @@ export const metadata: Metadata = {
   icons: { icon: "/favicon.ico" },
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const mapsKey = process.env.GOOGLE_MAPS_BROWSER_KEY // server-only env var
 
   return (
@@ -45,15 +43,7 @@ export default function RootLayout({
         <Analytics />
 
         {/* Load Google Maps JS once, with the Places library */}
-        <Script
-          id="google-maps"
-          strategy="afterInteractive"
-          src={`https://maps.googleapis.com/maps/api/js?key=${mapsKey}&v=weekly&libraries=places&loading=async`}
-          onLoad={() => {
-            // notify client components that Maps is ready
-            window.dispatchEvent(new Event("gmaps:loaded"))
-          }}
-        />
+        {mapsKey && <GoogleMapsLoader apiKey={mapsKey} />}
       </body>
     </html>
   )
