@@ -1,8 +1,6 @@
-// components/GoogleMap.tsx
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { getGoogleMapsScriptUrl } from "@/lib/actions/maps"
 
 declare global {
   interface Window {
@@ -19,7 +17,6 @@ interface GoogleMapProps {
 }
 
 const MAP_ID = "5ba0cee0da187a56483a0d90"
-const SCRIPT_ID = "google-maps-js"
 
 export function GoogleMap({ latitude, longitude, businessName, address, className = "" }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
@@ -36,39 +33,50 @@ export function GoogleMap({ latitude, longitude, businessName, address, classNam
       return
     }
 
-    async function loadGoogleMaps() {
-      try {
-        const src = await getGoogleMapsScriptUrl()
+    function waitForGoogleMaps() {
+      const checkGoogleMaps = () => {
+        if (cancelled) return
 
-        function loadScriptOnce() {
-          return new Promise<void>((resolve, reject) => {
-            let script = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null
-
-            if (!script) {
-              script = document.createElement("script")
-              script.id = SCRIPT_ID
-              script.src = src
-              script.async = true
-              script.defer = true
-              script.addEventListener("load", () => resolve(), { once: true })
-              script.addEventListener("error", () => reject(new Error("Maps script failed to load")), { once: true })
-              document.head.appendChild(script)
-            } else if (window.google?.maps) {
-              resolve()
-            } else {
-              script.addEventListener("load", () => resolve(), { once: true })
-              script.addEventListener("error", () => reject(new Error("Maps script failed to load")), { once: true })
+        if (window.google?.maps) {
+          initMap()
+        } else {
+          // Wait for the gmaps:loaded event from GoogleMapsLoader
+          const handleMapsLoaded = () => {
+            if (!cancelled && window.google?.maps) {
+              initMap()
             }
-          })
-        }
+          }
 
-        await loadScriptOnce()
-        initMap()
-      } catch (err) {
-        console.error("[GoogleMap] script load failed:", err)
-        setHasError(true)
-        setIsLoading(false)
+          window.addEventListener("gmaps:loaded", handleMapsLoaded, { once: true })
+
+          // Fallback: poll for Google Maps availability
+          const pollInterval = setInterval(() => {
+            if (cancelled) {
+              clearInterval(pollInterval)
+              return
+            }
+
+            if (window.google?.maps) {
+              clearInterval(pollInterval)
+              window.removeEventListener("gmaps:loaded", handleMapsLoaded)
+              initMap()
+            }
+          }, 100)
+
+          // Timeout after 10 seconds
+          setTimeout(() => {
+            if (!cancelled && isLoading) {
+              clearInterval(pollInterval)
+              window.removeEventListener("gmaps:loaded", handleMapsLoaded)
+              console.error("[GoogleMap] Google Maps failed to load within timeout")
+              setHasError(true)
+              setIsLoading(false)
+            }
+          }, 10000)
+        }
       }
+
+      checkGoogleMaps()
     }
 
     function initMap() {
@@ -146,7 +154,7 @@ export function GoogleMap({ latitude, longitude, businessName, address, classNam
       }
     }
 
-    loadGoogleMaps()
+    waitForGoogleMaps()
 
     return () => {
       cancelled = true
