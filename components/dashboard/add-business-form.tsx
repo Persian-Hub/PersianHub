@@ -16,6 +16,8 @@ import { KeywordsInput } from "@/components/ui/keywords-input"
 import { useRouter } from "next/navigation"
 import { Loader2, Plus, X } from "lucide-react"
 import { createBusiness } from "@/lib/actions"
+import { createClient } from "@/lib/supabase/client"
+import { notify } from "@/lib/ui/notify"
 
 interface Category {
   id: number
@@ -55,15 +57,12 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
   const [images, setImages] = useState<string[]>([])
   const [defaultImage, setDefaultImage] = useState<string>()
   const [ownerKeywords, setOwnerKeywords] = useState<string[]>([])
-  const [workingHours, setWorkingHours] = useState<WorkingHours>({
-    monday: { open: "09:00", close: "17:00", closed: false },
-    tuesday: { open: "09:00", close: "17:00", closed: false },
-    wednesday: { open: "09:00", close: "17:00", closed: false },
-    thursday: { open: "09:00", close: "17:00", closed: false },
-    friday: { open: "09:00", close: "17:00", closed: false },
-    saturday: { open: "09:00", close: "17:00", closed: false },
-    sunday: { open: "09:00", close: "17:00", closed: true },
-  })
+  const [categoryRequest, setCategoryRequest] = useState<{
+    proposedCategoryName: string
+    proposedSubcategoryName: string
+    description: string
+    exampleBusinesses: string
+  } | null>(null)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -82,6 +81,16 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
   }>({
     latitude: null,
     longitude: null,
+  })
+
+  const [workingHours, setWorkingHours] = useState<WorkingHours>({
+    mon: { open: "09:00", close: "17:00", closed: false },
+    tue: { open: "09:00", close: "17:00", closed: false },
+    wed: { open: "09:00", close: "17:00", closed: false },
+    thu: { open: "09:00", close: "17:00", closed: false },
+    fri: { open: "09:00", close: "17:00", closed: false },
+    sat: { open: "09:00", close: "17:00", closed: false },
+    sun: { open: "09:00", close: "17:00", closed: false },
   })
 
   const selectedCategory = categories.find((cat) => cat.id.toString() === formData.category_id)
@@ -134,10 +143,29 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
     setLoading(true)
 
     try {
+      if (formData.category_id === "other" && categoryRequest) {
+        const supabase = createClient()
+
+        const { error: categoryError } = await supabase.from("category_requests").insert({
+          proposed_category_name: categoryRequest.proposedCategoryName,
+          proposed_subcategory_name: categoryRequest.proposedSubcategoryName,
+          description: categoryRequest.description,
+          example_businesses: categoryRequest.exampleBusinesses,
+          requested_by: userId,
+        })
+
+        if (categoryError) {
+          notify.error("Error submitting category request. Please try again.")
+          return
+        }
+      }
+
       const formDataObj = new FormData()
 
-      // Add all form fields to FormData
       Object.entries(formData).forEach(([key, value]) => {
+        if (formData.category_id === "other" && (key === "category_id" || key === "subcategory_id")) {
+          return
+        }
         formDataObj.append(key, value)
       })
 
@@ -151,14 +179,14 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
       const result = await createBusiness(null, formDataObj)
 
       if (result.error) {
-        alert(result.error)
+        notify.error(result.error)
       } else {
-        alert(result.success)
+        notify.success(result.success)
         router.push("/dashboard")
       }
     } catch (error) {
       console.error("Error adding business:", error)
-      alert("Error adding business. Please try again.")
+      notify.error("Error adding business. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -227,40 +255,15 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
 
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="email" className="font-sans font-medium">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="business@example.com"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="website" className="font-sans font-medium">
-                Website
-              </Label>
-              <Input
-                id="website"
-                type="url"
-                value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                placeholder="https://yourwebsite.com"
-              />
-            </div>
-          </div>
-
-          <ImageUpload images={images} defaultImage={defaultImage} onImagesChange={handleImagesChange} maxImages={5} />
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-2">
               <Label className="font-sans font-medium">Category *</Label>
               <Select
                 value={formData.category_id}
-                onValueChange={(value) => setFormData({ ...formData, category_id: value, subcategory_id: "" })}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, category_id: value, subcategory_id: "" })
+                  if (value !== "other") {
+                    setCategoryRequest(null)
+                  }
+                }}
                 required
               >
                 <SelectTrigger>
@@ -272,8 +275,102 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
                       {category.name}
                     </SelectItem>
                   ))}
+                  <SelectItem value="other" className="text-blue-600 font-medium">
+                    Can't find it? Request new category →
+                  </SelectItem>
                 </SelectContent>
               </Select>
+
+              {formData.category_id === "other" && (
+                <div className="mt-4 p-4 border border-blue-200 rounded-lg bg-blue-50">
+                  <h3 className="font-medium text-blue-800 mb-3">Request New Category</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="proposed-category" className="text-sm font-medium">
+                        Proposed Category Name *
+                      </Label>
+                      <Input
+                        id="proposed-category"
+                        value={categoryRequest?.proposedCategoryName || ""}
+                        onChange={(e) =>
+                          setCategoryRequest((prev) => ({
+                            ...prev,
+                            proposedCategoryName: e.target.value,
+                            proposedSubcategoryName: prev?.proposedSubcategoryName || "",
+                            description: prev?.description || "",
+                            exampleBusinesses: prev?.exampleBusinesses || "",
+                          }))
+                        }
+                        placeholder="e.g., Pet Services"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="proposed-subcategory" className="text-sm font-medium">
+                        Proposed Subcategory (Optional)
+                      </Label>
+                      <Input
+                        id="proposed-subcategory"
+                        value={categoryRequest?.proposedSubcategoryName || ""}
+                        onChange={(e) =>
+                          setCategoryRequest((prev) => ({
+                            ...prev,
+                            proposedCategoryName: prev?.proposedCategoryName || "",
+                            proposedSubcategoryName: e.target.value,
+                            description: prev?.description || "",
+                            exampleBusinesses: prev?.exampleBusinesses || "",
+                          }))
+                        }
+                        placeholder="e.g., Dog Grooming"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="category-description" className="text-sm font-medium">
+                        Description *
+                      </Label>
+                      <Textarea
+                        id="category-description"
+                        value={categoryRequest?.description || ""}
+                        onChange={(e) =>
+                          setCategoryRequest((prev) => ({
+                            ...prev,
+                            proposedCategoryName: prev?.proposedCategoryName || "",
+                            proposedSubcategoryName: prev?.proposedSubcategoryName || "",
+                            description: e.target.value,
+                            exampleBusinesses: prev?.exampleBusinesses || "",
+                          }))
+                        }
+                        placeholder="Describe what types of businesses would fit in this category..."
+                        rows={2}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="example-businesses" className="text-sm font-medium">
+                        Example Businesses *
+                      </Label>
+                      <Input
+                        id="example-businesses"
+                        value={categoryRequest?.exampleBusinesses || ""}
+                        onChange={(e) =>
+                          setCategoryRequest((prev) => ({
+                            ...prev,
+                            proposedCategoryName: prev?.proposedCategoryName || "",
+                            proposedSubcategoryName: prev?.proposedSubcategoryName || "",
+                            description: prev?.description || "",
+                            exampleBusinesses: e.target.value,
+                          }))
+                        }
+                        placeholder="e.g., PetSmart, Local Vet Clinic, Dog Walker"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -281,8 +378,8 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
               <Select
                 value={formData.subcategory_id}
                 onValueChange={(value) => setFormData({ ...formData, subcategory_id: value })}
-                disabled={!selectedCategory}
-                required
+                disabled={!selectedCategory || formData.category_id === "other"}
+                required={formData.category_id !== "other"}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a subcategory" />
@@ -297,6 +394,8 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
               </Select>
             </div>
           </div>
+
+          <ImageUpload images={images} defaultImage={defaultImage} onImagesChange={handleImagesChange} maxImages={5} />
 
           <div className="space-y-4">
             <Label className="font-sans font-medium">Working Hours</Label>
@@ -377,7 +476,7 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
               value={ownerKeywords}
               onChange={setOwnerKeywords}
               label="Extra Keywords for Search (Hidden from Users)"
-              placeholder="نان , kebab, kabab, bread, جوجه کباب"
+              placeholder="نان , kebab, kabab, bread, جوجه کباب, Brooker, وام ماشین"
               maxKeywords={20}
               maxKeywordLength={50}
               className="space-y-2"

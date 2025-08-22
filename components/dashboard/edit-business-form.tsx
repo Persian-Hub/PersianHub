@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
 import { KeywordsInput } from "@/components/ui/keywords-input"
+import { CategoryRequestForm } from "@/components/ui/category-request-form"
 import { Minus, Save, ArrowLeft, Upload, LinkIcon } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import type { google } from "google-maps"
@@ -65,6 +66,7 @@ const EditBusinessFormComponent = ({
 }: EditBusinessFormProps) => {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [showCategoryRequest, setShowCategoryRequest] = useState(false)
   const [formData, setFormData] = useState({
     name: business.name || "",
     description: business.description || "",
@@ -181,6 +183,28 @@ const EditBusinessFormComponent = ({
   }
 
   const filteredSubcategories = subcategories.filter((sub) => sub.category_id === formData.category_id)
+
+  const handleCategoryRequest = async (request: any) => {
+    const supabase = createClient()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) throw new Error("User not authenticated")
+
+    const { error } = await supabase.from("category_requests").insert({
+      proposed_category_name: request.proposedCategoryName,
+      proposed_subcategory_name: request.proposedSubcategoryName,
+      description: request.description,
+      example_businesses: request.exampleBusinesses,
+      requested_by: user.id,
+      business_id: business.id,
+    })
+
+    if (error) {
+      throw error
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -329,6 +353,16 @@ const EditBusinessFormComponent = ({
     }
   }
 
+  if (showCategoryRequest) {
+    return (
+      <CategoryRequestForm
+        onBack={() => setShowCategoryRequest(false)}
+        onSubmit={handleCategoryRequest}
+        businessId={business.id}
+      />
+    )
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {isAdmin && (
@@ -437,15 +471,31 @@ const EditBusinessFormComponent = ({
                       {category.name}
                     </SelectItem>
                   ))}
+                  <SelectItem value="other" className="text-blue-600 font-medium">
+                    Can't find it? Request new category →
+                  </SelectItem>
                 </SelectContent>
               </Select>
+              {formData.category_id === "other" && (
+                <div className="mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowCategoryRequest(true)}
+                    className="w-full text-blue-600 border-blue-200 hover:bg-blue-50"
+                  >
+                    Request New Category
+                  </Button>
+                </div>
+              )}
             </div>
             <div>
               <Label htmlFor="subcategory">Subcategory *</Label>
               <Select
                 value={formData.subcategory_id}
                 onValueChange={(value) => handleInputChange("subcategory_id", value)}
-                disabled={!formData.category_id}
+                disabled={!formData.category_id || formData.category_id === "other"}
+                required={formData.category_id !== "other"}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a subcategory" />

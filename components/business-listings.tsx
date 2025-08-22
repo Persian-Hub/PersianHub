@@ -90,6 +90,58 @@ function calculateSearchScore(business: Business, searchTerm: string): number {
   return score
 }
 
+async function trackSearchAnalytics(searchTerm: string) {
+  if (!searchTerm.trim()) return
+
+  const supabase = createClient()
+  const cleanTerm = searchTerm.toLowerCase().trim()
+
+  try {
+    // Check if this search term already exists
+    const { data: existingAnalytics, error: fetchError } = await supabase
+      .from("category_search_analytics")
+      .select("id, search_count")
+      .eq("search_term", cleanTerm)
+      .single()
+
+    if (fetchError && fetchError.code !== "PGRST116") {
+      console.error("[v0] Error fetching search analytics:", fetchError)
+      return
+    }
+
+    if (existingAnalytics) {
+      // Update existing record
+      const { error: updateError } = await supabase
+        .from("category_search_analytics")
+        .update({
+          search_count: existingAnalytics.search_count + 1,
+          last_searched_at: new Date().toISOString(),
+        })
+        .eq("id", existingAnalytics.id)
+
+      if (updateError) {
+        console.error("[v0] Error updating search analytics:", updateError)
+      }
+    } else {
+      // Create new record
+      const { error: insertError } = await supabase.from("category_search_analytics").insert({
+        search_term: cleanTerm,
+        search_count: 1,
+        first_searched_at: new Date().toISOString(),
+        last_searched_at: new Date().toISOString(),
+      })
+
+      if (insertError) {
+        console.error("[v0] Error inserting search analytics:", insertError)
+      }
+    }
+
+    console.log(`[v0] Tracked search for: "${cleanTerm}"`)
+  } catch (error) {
+    console.error("[v0] Error in trackSearchAnalytics:", error)
+  }
+}
+
 export function BusinessListings() {
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([])
@@ -207,6 +259,8 @@ export function BusinessListings() {
     if (!searchTerm.trim()) {
       return businessData
     }
+
+    trackSearchAnalytics(searchTerm)
 
     // Calculate search scores and filter businesses with scores > 0
     const businessesWithScores = businessData
