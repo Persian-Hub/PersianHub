@@ -132,7 +132,7 @@ export async function createBusiness(prevState: any, formData: FormData) {
     const baseSlug = businessData.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
+      .replace(/^-+|-+$/g, "")
 
     let slug = baseSlug
     let counter = 1
@@ -599,7 +599,7 @@ export async function createCategory(prevState: any, formData: FormData) {
     const slug = name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
+      .replace(/^-+|-+$/g, "")
 
     const { data, error } = await adminSupabase.from("categories").insert({ name: name.trim(), slug }).select().single()
 
@@ -641,7 +641,7 @@ export async function updateCategory(prevState: any, formData: FormData) {
     const slug = name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
+      .replace(/^-+|-+$/g, "")
 
     const adminSupabase = createAdminClient()
     const { error } = await adminSupabase.from("categories").update({ name: name.trim(), slug }).eq("id", categoryId)
@@ -740,7 +740,7 @@ export async function createSubcategory(prevState: any, formData: FormData) {
     const slug = name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
+      .replace(/^-+|-+$/g, "")
 
     const { data, error } = await adminSupabase
       .from("subcategories")
@@ -786,7 +786,7 @@ export async function updateSubcategory(prevState: any, formData: FormData) {
     const slug = name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
+      .replace(/^-+|-+$/g, "")
 
     const adminSupabase = createAdminClient()
     const { error } = await adminSupabase

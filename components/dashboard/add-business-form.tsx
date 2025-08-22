@@ -84,13 +84,13 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
   })
 
   const [workingHours, setWorkingHours] = useState<WorkingHours>({
-    mon: { open: "09:00", close: "17:00", closed: false },
-    tue: { open: "09:00", close: "17:00", closed: false },
-    wed: { open: "09:00", close: "17:00", closed: false },
-    thu: { open: "09:00", close: "17:00", closed: false },
-    fri: { open: "09:00", close: "17:00", closed: false },
-    sat: { open: "09:00", close: "17:00", closed: false },
-    sun: { open: "09:00", close: "17:00", closed: false },
+    monday: { open: "09:00", close: "17:00", closed: false },
+    tuesday: { open: "09:00", close: "17:00", closed: false },
+    wednesday: { open: "09:00", close: "17:00", closed: false },
+    thursday: { open: "09:00", close: "17:00", closed: false },
+    friday: { open: "09:00", close: "17:00", closed: false },
+    saturday: { open: "09:00", close: "17:00", closed: false },
+    sunday: { open: "09:00", close: "17:00", closed: false },
   })
 
   const selectedCategory = categories.find((cat) => cat.id.toString() === formData.category_id)
