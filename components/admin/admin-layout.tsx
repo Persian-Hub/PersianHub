@@ -20,6 +20,7 @@ import {
   Settings,
   TrendingUp,
   FileText,
+  Shield,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -54,6 +55,7 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
     promotions: 0,
     activePromotions: 0,
     categoryRequests: 0,
+    verificationRequests: 0,
   })
   const [pendingItems, setPendingItems] = useState<{
     businesses: Array<{ id: string; name: string; created_at: string }>
@@ -76,6 +78,7 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
           promotionsResult,
           activePromotionsResult,
           categoryRequestsResult,
+          verificationRequestsResult,
         ] = await Promise.all([
           supabase.from("businesses").select("*", { count: "exact", head: true }),
           supabase.from("businesses").select("*", { count: "exact", head: true }).eq("status", "pending"),
@@ -96,6 +99,17 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
                 return { count: 0, error: null }
               },
             ),
+          supabase
+            .from("verification_requests")
+            .select("*", { count: "exact", head: true })
+            .eq("status", "pending")
+            .then(
+              (result) => result,
+              (error) => {
+                console.log("Verification requests table not found, defaulting to 0 count")
+                return { count: 0, error: null }
+              },
+            ),
         ])
 
         setCounts({
@@ -108,6 +122,7 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
           promotions: promotionsResult.count || 0,
           activePromotions: activePromotionsResult.count || 0,
           categoryRequests: categoryRequestsResult.count || 0,
+          verificationRequests: verificationRequestsResult.count || 0,
         })
 
         const [pendingBusinessesData, pendingReviewsData] = await Promise.all([
@@ -173,6 +188,13 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
           icon: FileText,
           badge: counts.categoryRequests > 0 ? counts.categoryRequests.toString() : undefined,
           urgent: counts.categoryRequests > 0,
+        },
+        {
+          name: "Verification Requests",
+          href: "/admin/verification-requests",
+          icon: Shield,
+          badge: counts.verificationRequests > 0 ? counts.verificationRequests.toString() : undefined,
+          urgent: counts.verificationRequests > 0,
         },
       ],
     },
@@ -294,9 +316,16 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="relative">
                     <Bell className="h-5 w-5" />
-                    {counts.pendingBusinesses + counts.pendingReviews + counts.categoryRequests > 0 && (
+                    {counts.pendingBusinesses +
+                      counts.pendingReviews +
+                      counts.categoryRequests +
+                      counts.verificationRequests >
+                      0 && (
                       <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-destructive text-destructive-foreground text-xs">
-                        {counts.pendingBusinesses + counts.pendingReviews + counts.categoryRequests}
+                        {counts.pendingBusinesses +
+                          counts.pendingReviews +
+                          counts.categoryRequests +
+                          counts.verificationRequests}
                       </Badge>
                     )}
                   </Button>
@@ -305,7 +334,10 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
                   <DropdownMenuLabel className="font-semibold">Notifications</DropdownMenuLabel>
                   <DropdownMenuSeparator />
 
-                  {counts.pendingBusinesses === 0 && counts.pendingReviews === 0 && counts.categoryRequests === 0 ? (
+                  {counts.pendingBusinesses === 0 &&
+                  counts.pendingReviews === 0 &&
+                  counts.categoryRequests === 0 &&
+                  counts.verificationRequests === 0 ? (
                     <DropdownMenuItem disabled className="text-center py-4">
                       <span className="text-muted-foreground">No pending items</span>
                     </DropdownMenuItem>
@@ -386,6 +418,20 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
                               </Link>
                             </DropdownMenuItem>
                           )}
+                          <DropdownMenuSeparator />
+                        </>
+                      )}
+
+                      {counts.verificationRequests > 0 && (
+                        <>
+                          <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">
+                            Verification Requests ({counts.verificationRequests})
+                          </DropdownMenuLabel>
+                          <DropdownMenuItem asChild>
+                            <Link href="/admin/verification-requests" className="text-center text-sm text-primary">
+                              View {counts.verificationRequests} pending verification requests
+                            </Link>
+                          </DropdownMenuItem>
                         </>
                       )}
                     </>

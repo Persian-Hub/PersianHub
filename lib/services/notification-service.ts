@@ -451,6 +451,156 @@ class NotificationService {
     )
   }
 
+  // Verification request notification methods
+  async sendAdminVerificationRequest(data: {
+    businessName: string
+    ownerName: string
+    ownerEmail: string
+    requestMessage: string
+    requestId: string
+  }): Promise<boolean> {
+    console.log("[NotificationService] Sending admin verification request notification")
+
+    if (this.adminEmails.length === 0) {
+      console.warn("[NotificationService] No admin emails configured")
+      return false
+    }
+
+    const adminVerificationLink = `${this.baseUrl}/admin/verification-requests`
+
+    const template = emailTemplates.adminVerificationRequest({
+      businessName: data.businessName,
+      ownerName: data.ownerName,
+      ownerEmail: data.ownerEmail,
+      requestMessage: data.requestMessage,
+      adminVerificationLink,
+    })
+
+    return await emailService.sendEmail(
+      {
+        to: this.adminEmails,
+        subject: template.subject,
+        templateKey: "admin_verification_request",
+        variables: {
+          businessName: data.businessName,
+          ownerName: data.ownerName,
+          ownerEmail: data.ownerEmail,
+          requestMessage: data.requestMessage,
+          adminVerificationLink,
+        },
+        entityType: "verification_request",
+        entityId: data.requestId,
+      },
+      template.html,
+      template.text,
+    )
+  }
+
+  async sendUserVerificationConfirmation(data: {
+    businessName: string
+    ownerName: string
+    ownerEmail: string
+  }): Promise<boolean> {
+    console.log("[NotificationService] Sending user verification confirmation")
+
+    const statusLink = `${this.baseUrl}/dashboard`
+
+    const template = emailTemplates.userVerificationConfirmation({
+      businessName: data.businessName,
+      ownerName: data.ownerName,
+      statusLink,
+    })
+
+    return await emailService.sendEmail(
+      {
+        to: [data.ownerEmail],
+        subject: template.subject,
+        templateKey: "user_verification_confirmation",
+        variables: {
+          businessName: data.businessName,
+          ownerName: data.ownerName,
+          statusLink,
+        },
+        entityType: "verification_request",
+        entityId: "confirmation",
+      },
+      template.html,
+      template.text,
+    )
+  }
+
+  async sendVerificationApproved(data: {
+    businessName: string
+    ownerName: string
+    ownerEmail: string
+    adminNotes?: string
+  }): Promise<boolean> {
+    console.log("[NotificationService] Sending verification approved notification")
+
+    const businessLink = `${this.baseUrl}/dashboard`
+
+    const template = emailTemplates.verificationApproved({
+      businessName: data.businessName,
+      ownerName: data.ownerName,
+      adminNotes: data.adminNotes,
+      businessLink,
+    })
+
+    return await emailService.sendEmail(
+      {
+        to: [data.ownerEmail],
+        subject: template.subject,
+        templateKey: "verification_approved",
+        variables: {
+          businessName: data.businessName,
+          ownerName: data.ownerName,
+          adminNotes: data.adminNotes,
+          businessLink,
+        },
+        entityType: "verification_request",
+        entityId: "approved",
+      },
+      template.html,
+      template.text,
+    )
+  }
+
+  async sendVerificationRejected(data: {
+    businessName: string
+    ownerName: string
+    ownerEmail: string
+    adminNotes: string
+  }): Promise<boolean> {
+    console.log("[NotificationService] Sending verification rejected notification")
+
+    const resubmitLink = `${this.baseUrl}/dashboard`
+
+    const template = emailTemplates.verificationRejected({
+      businessName: data.businessName,
+      ownerName: data.ownerName,
+      rejectionReason: data.adminNotes,
+      resubmitLink,
+    })
+
+    return await emailService.sendEmail(
+      {
+        to: [data.ownerEmail],
+        subject: template.subject,
+        templateKey: "verification_rejected",
+        variables: {
+          businessName: data.businessName,
+          ownerName: data.ownerName,
+          rejectionReason: data.adminNotes,
+          resubmitLink,
+        },
+        entityType: "verification_request",
+        entityId: "rejected",
+      },
+      template.html,
+      template.text,
+    )
+  }
+
   // Helper method to get business and owner data from database
   async getBusinessNotificationData(businessId: string): Promise<BusinessNotificationData | null> {
     const supabase = createClient()
@@ -526,4 +676,5 @@ class NotificationService {
 }
 
 export const notificationService = new NotificationService()
+export { NotificationService }
 export default notificationService
