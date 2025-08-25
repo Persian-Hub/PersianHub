@@ -1,21 +1,28 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MapPin, Shield, CheckCircle } from "lucide-react"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/client"
+import { useEffect, useState } from "react"
 
-async function getBusinessCount() {
-  const supabase = createClient()
-  const { count } = await supabase
-    .from("businesses")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "approved")
+export function Footer() {
+  const [businessCount, setBusinessCount] = useState(0)
 
-  return count || 0
-}
+  useEffect(() => {
+    const getBusinessCount = async () => {
+      const supabase = createClient()
+      const { count } = await supabase
+        .from("businesses")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "approved")
 
-export async function Footer() {
-  const businessCount = await getBusinessCount()
+      setBusinessCount(count || 0)
+    }
+
+    getBusinessCount()
+  }, [])
 
   return (
     <footer className="bg-white border-t border-gray-200">

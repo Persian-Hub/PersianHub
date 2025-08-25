@@ -1,11 +1,72 @@
+"use client"
+
+import type React from "react"
+
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Mail, Phone, MapPin, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { useState, useEffect, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 
 export default function ContactPage() {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const searchParams = useSearchParams()
+  const formRef = useRef<HTMLFormElement>(null)
+
+  useEffect(() => {
+    if (searchParams.get("success") === "true") {
+      setMessage({
+        type: "success",
+        text: "Thank you! Your message has been sent successfully. We'll get back to you soon.",
+      })
+    } else if (searchParams.get("error") === "true") {
+      setMessage({ type: "error", text: "Sorry, there was an error sending your message. Please try again." })
+    }
+  }, [searchParams])
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setMessage(null)
+
+    console.log("[v0] Contact form submission started")
+
+    const formData = new FormData(e.currentTarget)
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        body: formData,
+      })
+
+      console.log("[v0] Contact form response status:", response.status)
+
+      if (response.ok) {
+        setMessage({
+          type: "success",
+          text: "Thank you! Your message has been sent successfully. We'll get back to you soon.",
+        })
+        formRef.current?.reset()
+      } else {
+        const errorData = await response.json()
+        console.log("[v0] Contact form error:", errorData)
+        setMessage({
+          type: "error",
+          text: errorData.error || "There was an error sending your message. Please try again.",
+        })
+      }
+    } catch (error) {
+      console.error("[v0] Contact form submission error:", error)
+      setMessage({ type: "error", text: "There was an error sending your message. Please try again." })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -25,7 +86,19 @@ export default function ContactPage() {
             <div className="bg-white rounded-lg shadow-sm p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Send us a Message</h2>
 
-              <form action="/api/contact" method="POST" className="space-y-6">
+              {message && (
+                <div
+                  className={`mb-6 p-4 rounded-md ${
+                    message.type === "success"
+                      ? "bg-green-50 border border-green-200 text-green-800"
+                      : "bg-red-50 border border-red-200 text-red-800"
+                  }`}
+                >
+                  {message.text}
+                </div>
+              )}
+
+              <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
@@ -68,8 +141,8 @@ export default function ContactPage() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-                  Send Message
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
+                  {isSubmitting ? "Sending..." : "Send Message"}
                 </Button>
               </form>
             </div>

@@ -1,6 +1,7 @@
 import { emailService } from "./email-service"
 import { emailTemplates } from "./email-templates"
 import { createClient } from "@/lib/supabase/server"
+import crypto from "crypto"
 
 // Notification service that handles all email notifications for Persian Hub
 // Integrates with business and review workflows to send appropriate emails
@@ -650,7 +651,7 @@ class NotificationService {
           date: currentDate,
         },
         entityType: "contact_form",
-        entityId: `contact-${Date.now()}`,
+        entityId: crypto.randomUUID(),
       },
       template.html,
       template.text,

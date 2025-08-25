@@ -3,6 +3,8 @@ import { notificationService } from "@/lib/services/notification-service"
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("[v0] Contact API route called")
+
     const formData = await request.formData()
 
     const contactData = {
@@ -13,6 +15,8 @@ export async function POST(request: NextRequest) {
       message: formData.get("message")?.toString() || "",
     }
 
+    console.log("[v0] Contact form data:", contactData)
+
     // Validate required fields
     if (
       !contactData.firstName ||
@@ -21,8 +25,11 @@ export async function POST(request: NextRequest) {
       !contactData.subject ||
       !contactData.message
     ) {
+      console.log("[v0] Contact form validation failed")
       return NextResponse.json({ error: "All fields are required" }, { status: 400 })
     }
+
+    console.log("[v0] Attempting to send contact form email")
 
     // Send email to admin
     await notificationService.sendContactFormMessage({
@@ -33,12 +40,11 @@ export async function POST(request: NextRequest) {
       message: contactData.message,
     })
 
-    // Redirect back to contact page with success message
-    const url = new URL("/contact?success=true", request.url)
-    return NextResponse.redirect(url)
+    console.log("[v0] Contact form email sent successfully")
+
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error processing contact form:", error)
-    const url = new URL("/contact?error=true", request.url)
-    return NextResponse.redirect(url)
+    console.error("[v0] Error processing contact form:", error)
+    return NextResponse.json({ error: "Failed to send message" }, { status: 500 })
   }
 }

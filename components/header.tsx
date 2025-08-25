@@ -1,7 +1,9 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { User, LogOut, Shield } from "lucide-react"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/client"
 import { signOut } from "@/lib/actions"
 import {
   DropdownMenu,
@@ -12,18 +14,53 @@ import {
 } from "@/components/ui/dropdown-menu"
 import Image from "next/image"
 import { GpsNearMeButton } from "./gps-near-me-button"
+import { useEffect, useState } from "react"
+import type { User as SupabaseUser } from "@supabase/supabase-js"
 
-export async function Header() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+interface Profile {
+  role: string
+}
 
-  let profile = null
-  if (user) {
-    const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single()
-    profile = data
-  }
+export function Header() {
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const supabase = createClient()
+
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      setUser(user)
+
+      if (user) {
+        const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+        setProfile(data)
+      }
+
+      setLoading(false)
+    }
+
+    getUser()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setUser(session?.user ?? null)
+
+      if (session?.user) {
+        const { data } = await supabase.from("profiles").select("role").eq("id", session.user.id).single()
+        setProfile(data)
+      } else {
+        setProfile(null)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -54,86 +91,90 @@ export async function Header() {
           <div className="flex items-center space-x-4">
             <GpsNearMeButton />
 
-            {user ? (
+            {!loading && (
               <>
-                <Link href="/dashboard">
-                  <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white">
-                    Dashboard
-                  </Button>
-                </Link>
-
-                {profile?.role === "admin" && (
-                  <Link href="/admin">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-red-200 text-red-700 hover:bg-red-50 bg-transparent"
-                    >
-                      <Shield className="h-4 w-4 mr-2" />
-                      Admin
-                    </Button>
-                  </Link>
-                )}
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <User className="h-4 w-4 mr-2" />
-                      Account
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile" className="cursor-pointer">
-                        Profile Settings
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard" className="cursor-pointer">
+                {user ? (
+                  <>
+                    <Link href="/dashboard">
+                      <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white">
                         Dashboard
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard/analytics" className="cursor-pointer">
-                        Analytics
-                      </Link>
-                    </DropdownMenuItem>
+                      </Button>
+                    </Link>
+
                     {profile?.role === "admin" && (
-                      <>
-                        <DropdownMenuSeparator />
+                      <Link href="/admin">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-red-200 text-red-700 hover:bg-red-50 bg-transparent"
+                        >
+                          <Shield className="h-4 w-4 mr-2" />
+                          Admin
+                        </Button>
+                      </Link>
+                    )}
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <User className="h-4 w-4 mr-2" />
+                          Account
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem asChild>
-                          <Link href="/admin" className="cursor-pointer">
-                            <Shield className="h-4 w-4 mr-2" />
-                            Admin Panel
+                          <Link href="/profile" className="cursor-pointer">
+                            Profile Settings
                           </Link>
                         </DropdownMenuItem>
-                      </>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <form action={signOut} className="w-full">
-                        <button type="submit" className="flex items-center w-full text-left">
-                          <LogOut className="h-4 w-4 mr-2" />
-                          Sign Out
-                        </button>
-                      </form>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
-            ) : (
-              <>
-                <Link href="/auth/login">
-                  <Button variant="outline" size="sm">
-                    <User className="h-4 w-4 mr-2" />
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href="/auth/sign-up">
-                  <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white">
-                    Join Now
-                  </Button>
-                </Link>
+                        <DropdownMenuItem asChild>
+                          <Link href="/dashboard" className="cursor-pointer">
+                            Dashboard
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/dashboard/analytics" className="cursor-pointer">
+                            Analytics
+                          </Link>
+                        </DropdownMenuItem>
+                        {profile?.role === "admin" && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                              <Link href="/admin" className="cursor-pointer">
+                                <Shield className="h-4 w-4 mr-2" />
+                                Admin Panel
+                              </Link>
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <form action={signOut} className="w-full">
+                            <button type="submit" className="flex items-center w-full text-left">
+                              <LogOut className="h-4 w-4 mr-2" />
+                              Sign Out
+                            </button>
+                          </form>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/auth/login">
+                      <Button variant="outline" size="sm">
+                        <User className="h-4 w-4 mr-2" />
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link href="/auth/sign-up">
+                      <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white">
+                        Join Now
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </>
             )}
           </div>
