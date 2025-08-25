@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Contact Form Message - Persian Hub</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8fafc;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 32px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #64748b;
+            font-size: 16px;
+        }
+        .content {
+            margin-bottom: 32px;
+        }
+        .message-info {
+            background: #f1f5f9;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .info-row {
+            display: flex;
+            margin-bottom: 12px;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #374151;
+            min-width: 80px;
+        }
+        .info-value {
+            color: #6b7280;
+        }
+        .message-content {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 16px;
+            margin-top: 16px;
+            white-space: pre-wrap;
+        }
+        .footer {
+            text-align: center;
+            padding-top: 24px;
+            border-top: 1px solid #e2e8f0;
+            color: #64748b;
+            font-size: 14px;
+        }
+        .button {
+            display: inline-block;
+            background: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Persian Hub</div>
+            <div class="subtitle">New Contact Form Message</div>
+        </div>
+
+        <div class="content">
+            <p>You have received a new message through the Persian Hub contact form:</p>
+
+            <div class="message-info">
+                <div class="info-row">
+                    <span class="info-label">From:</span>
+                    <span class="info-value">{{firstName}} {{lastName}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value">{{email}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Subject:</span>
+                    <span class="info-value">{{subject}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Date:</span>
+                    <span class="info-value">{{date}}</span>
+                </div>
+            </div>
+
+            <div class="message-content">{{message}}</div>
+
+            <p>Please respond to this inquiry at your earliest convenience.</p>
+        </div>
+
+        <div class="footer">
+            <p>This message was sent through the Persian Hub contact form.</p>
+            <p>Persian Hub - Connecting Persian Businesses in Australia</p>
+        </div>
+    </div>
+</body>
+</html>

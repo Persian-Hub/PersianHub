@@ -54,6 +54,14 @@ interface ReviewerNotificationData {
   actorUserId?: string
 }
 
+interface ContactFormData {
+  firstName: string
+  lastName: string
+  email: string
+  subject: string
+  message: string
+}
+
 class NotificationService {
   private baseUrl: string
   private adminEmails: string[]
@@ -595,6 +603,54 @@ class NotificationService {
         },
         entityType: "verification_request",
         entityId: "rejected",
+      },
+      template.html,
+      template.text,
+    )
+  }
+
+  // Contact form message method
+  async sendContactFormMessage(data: ContactFormData): Promise<boolean> {
+    console.log("[NotificationService] Sending contact form message to admins")
+
+    if (this.adminEmails.length === 0) {
+      console.warn("[NotificationService] No admin emails configured")
+      return false
+    }
+
+    const currentDate = new Date().toLocaleDateString("en-AU", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Australia/Brisbane",
+    })
+
+    const template = emailTemplates.contactFormMessage({
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      subject: data.subject,
+      message: data.message,
+      date: currentDate,
+    })
+
+    return await emailService.sendEmail(
+      {
+        to: this.adminEmails,
+        subject: template.subject,
+        templateKey: "contact_form_message",
+        variables: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          subject: data.subject,
+          message: data.message,
+          date: currentDate,
+        },
+        entityType: "contact_form",
+        entityId: `contact-${Date.now()}`,
       },
       template.html,
       template.text,

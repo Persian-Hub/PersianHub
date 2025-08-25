@@ -25,19 +25,19 @@ export default function ContactPage() {
             <div className="bg-white rounded-lg shadow-sm p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Send us a Message</h2>
 
-              <form className="space-y-6">
+              <form action="/api/contact" method="POST" className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
                       First Name
                     </label>
-                    <Input id="firstName" placeholder="Enter your first name" />
+                    <Input id="firstName" name="firstName" placeholder="Enter your first name" required />
                   </div>
                   <div>
                     <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
                       Last Name
                     </label>
-                    <Input id="lastName" placeholder="Enter your last name" />
+                    <Input id="lastName" name="lastName" placeholder="Enter your last name" required />
                   </div>
                 </div>
 
@@ -45,24 +45,32 @@ export default function ContactPage() {
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                     Email Address
                   </label>
-                  <Input id="email" type="email" placeholder="Enter your email" />
+                  <Input id="email" name="email" type="email" placeholder="Enter your email" required />
                 </div>
 
                 <div>
                   <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
                     Subject
                   </label>
-                  <Input id="subject" placeholder="What is this regarding?" />
+                  <Input id="subject" name="subject" placeholder="What is this regarding?" required />
                 </div>
 
                 <div>
                   <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
                     Message
                   </label>
-                  <Textarea id="message" rows={6} placeholder="Tell us how we can help you..." />
+                  <Textarea
+                    id="message"
+                    name="message"
+                    rows={6}
+                    placeholder="Tell us how we can help you..."
+                    required
+                  />
                 </div>
 
-                <Button className="w-full bg-blue-600 hover:bg-blue-700">Send Message</Button>
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
+                  Send Message
+                </Button>
               </form>
             </div>
 
@@ -85,7 +93,7 @@ export default function ContactPage() {
                     <Phone className="h-6 w-6 text-blue-600 mt-1" />
                     <div>
                       <h3 className="font-semibold text-gray-900">Phone</h3>
-                      <p className="text-gray-600">+61 2 1234 5678</p>
+                      <p className="text-gray-600">+61433531131</p>
                       <p className="text-sm text-gray-500">Monday to Friday, 9 AM - 6 PM AEST</p>
                     </div>
                   </div>
@@ -95,9 +103,9 @@ export default function ContactPage() {
                     <div>
                       <h3 className="font-semibold text-gray-900">Address</h3>
                       <p className="text-gray-600">
-                        Level 10, 123 Collins Street
+                        15 Llyod Street
                         <br />
-                        Melbourne VIC 3000
+                        Alderley 4051, QLD
                         <br />
                         Australia
                       </p>
