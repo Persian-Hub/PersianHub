@@ -616,7 +616,7 @@ const EditBusinessFormComponent = ({
             onChange={setOwnerKeywords}
             label="Extra Keywords for Search (Hidden from Users)"
             placeholder="نان , kebab, kabab, bread, جوجه کباب"
-            maxKeywords={20}
+            maxKeywords={150} // Updated from 20 to 150 keywords
             maxKeywordLength={50}
             className="space-y-2"
           />
