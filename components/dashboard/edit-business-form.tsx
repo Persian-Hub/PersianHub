@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/client"
 import type { google } from "google-maps"
 import { notify } from "@/lib/ui/notify"
 import { prompt } from "@/components/ui/prompt-dialog"
+import { normalizeWorkingHours, convertToStandardFormat } from "@/lib/utils/working-hours"
 
 interface Business {
   id: string
@@ -100,44 +101,9 @@ const EditBusinessFormComponent = ({
   useEffect(() => {
     console.log("[v0] Loading working hours from business:", business.opening_hours)
 
-    if (business.opening_hours) {
-      try {
-        // Handle different formats of opening_hours data
-        let hoursData = business.opening_hours
-
-        // If it's a string, try to parse it
-        if (typeof hoursData === "string") {
-          hoursData = JSON.parse(hoursData)
-        }
-
-        console.log("[v0] Parsed working hours:", hoursData)
-
-        // Validate and set working hours
-        if (hoursData && typeof hoursData === "object") {
-          const validatedHours = { ...workingHours }
-
-          Object.keys(validatedHours).forEach((day) => {
-            if (hoursData[day]) {
-              const dayData = hoursData[day]
-              validatedHours[day] = {
-                open: dayData.open && dayData.open !== "00:00" ? dayData.open : "09:00",
-                close: dayData.close && dayData.close !== "00:00" ? dayData.close : "17:00",
-                closed: dayData.closed === true || dayData.closed === "true",
-              }
-              console.log(`[v0] Set ${day}:`, validatedHours[day])
-            }
-          })
-
-          console.log("[v0] Setting validated working hours:", validatedHours)
-          setWorkingHours(validatedHours)
-        }
-      } catch (error) {
-        console.error("[v0] Error parsing working hours:", error)
-        console.log("[v0] Using default working hours")
-      }
-    } else {
-      console.log("[v0] No opening_hours data found, using defaults")
-    }
+    const normalizedHours = normalizeWorkingHours(business.opening_hours)
+    console.log("[v0] Normalized working hours:", normalizedHours)
+    setWorkingHours(normalizedHours)
   }, [business.opening_hours])
 
   const handleAddressChange = (address: string, placeDetails?: google.maps.places.PlaceResult) => {
@@ -182,7 +148,7 @@ const EditBusinessFormComponent = ({
     }))
   }
 
-  const filteredSubcategories = subcategories.filter((sub) => sub.category_id === formData.category_id)
+  const filteredSubcategories = (subcategories || []).filter((sub) => sub.category_id === formData.category_id)
 
   const handleCategoryRequest = async (request: any) => {
     const supabase = createClient()
@@ -229,6 +195,9 @@ const EditBusinessFormComponent = ({
 
       console.log("[v0] Saving working hours:", validatedWorkingHours)
 
+      const standardizedHours = convertToStandardFormat(validatedWorkingHours)
+      console.log("[v0] Standardized working hours for database:", standardizedHours)
+
       const updateData = {
         name: formData.name,
         description: formData.description,
@@ -239,7 +208,7 @@ const EditBusinessFormComponent = ({
         category_id: formData.category_id,
         subcategory_id: formData.subcategory_id,
         images: images,
-        opening_hours: validatedWorkingHours, // Use validated working hours
+        opening_hours: standardizedHours, // Use standardized format
         owner_keywords: ownerKeywords,
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,

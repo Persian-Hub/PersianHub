@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { MapPin, User, LogOut, Shield } from "lucide-react"
+import { User, LogOut, Shield } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { signOut } from "@/lib/actions"
 import {
@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import Image from "next/image"
+import { GpsNearMeButton } from "./gps-near-me-button"
 
 export async function Header() {
   const supabase = createClient()
@@ -51,10 +52,7 @@ export async function Header() {
 
           {/* Actions */}
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" className="hidden sm:flex">
-              <MapPin className="h-4 w-4 mr-2" />
-              Near Me
-            </Button>
+            <GpsNearMeButton />
 
             {user ? (
               <>

@@ -58,6 +58,14 @@ export default async function EditBusinessPage({
     notFound()
   }
 
+  const subcategories = categories.flatMap(
+    (category) =>
+      category.subcategories?.map((sub) => ({
+        ...sub,
+        category_id: category.id,
+      })) || [],
+  )
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -68,7 +76,7 @@ export default async function EditBusinessPage({
           <p className="font-sans text-gray-600">Update your business information and services.</p>
         </div>
 
-        <EditBusinessForm business={business} categories={categories} />
+        <EditBusinessForm business={business} categories={categories} subcategories={subcategories} />
       </main>
 
       <Footer />

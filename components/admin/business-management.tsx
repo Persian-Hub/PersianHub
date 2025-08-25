@@ -17,6 +17,7 @@ import { AddressAutocomplete } from "@/components/ui/address-autocomplete"
 import { notify } from "@/lib/ui/notify"
 import { confirm } from "@/components/ui/confirm-dialog"
 import { prompt } from "@/components/ui/prompt-dialog"
+import { normalizeWorkingHours, convertToStandardFormat } from "@/lib/utils/working-hours"
 
 interface Business {
   id: string
@@ -170,15 +171,10 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
       website: business.website || "",
     })
     setNewImages(business.images || [])
-    setWorkingHours({
-      monday: { open: "09:00", close: "17:00", closed: false },
-      tuesday: { open: "09:00", close: "17:00", closed: false },
-      wednesday: { open: "09:00", close: "17:00", closed: false },
-      thursday: { open: "09:00", close: "17:00", closed: false },
-      friday: { open: "09:00", close: "17:00", closed: false },
-      saturday: { open: "09:00", close: "17:00", closed: false },
-      sunday: { open: "09:00", close: "17:00", closed: false },
-    })
+
+    const normalizedHours = normalizeWorkingHours((business as any).opening_hours)
+    setWorkingHours(normalizedHours)
+
     setIsEditing(true)
   }
 
@@ -189,6 +185,8 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
     const supabase = createClient()
 
     try {
+      const standardizedHours = convertToStandardFormat(workingHours)
+
       const { error } = await supabase
         .from("businesses")
         .update({
@@ -199,7 +197,7 @@ export function BusinessManagement({ businesses }: BusinessManagementProps) {
           email: editFormData.email,
           website: editFormData.website,
           images: newImages,
-          opening_hours: workingHours,
+          opening_hours: standardizedHours, // Use standardized format
         })
         .eq("id", selectedBusiness.id)
 

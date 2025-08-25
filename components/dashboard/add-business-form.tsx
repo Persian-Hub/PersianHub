@@ -18,6 +18,7 @@ import { Loader2, Plus, X } from "lucide-react"
 import { createBusiness } from "@/lib/actions"
 import { createClient } from "@/lib/supabase/client"
 import { notify } from "@/lib/ui/notify"
+import { convertToStandardFormat } from "@/lib/utils/working-hours"
 
 interface Category {
   id: number
@@ -163,7 +164,10 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
       formDataObj.append("latitude", coordinates.latitude?.toString() || "")
       formDataObj.append("longitude", coordinates.longitude?.toString() || "")
       formDataObj.append("images", JSON.stringify(images))
-      formDataObj.append("opening_hours", JSON.stringify(workingHours))
+
+      const standardizedHours = convertToStandardFormat(workingHours)
+      formDataObj.append("opening_hours", JSON.stringify(standardizedHours))
+
       formDataObj.append("services", JSON.stringify(services))
       formDataObj.append("owner_keywords", JSON.stringify(ownerKeywords))
 
