@@ -25,6 +25,35 @@ interface ReviewNotificationData {
   actorUserId?: string
 }
 
+interface UserRegistrationData {
+  userId: string
+  userName: string
+  userEmail: string
+  registeredAt: string
+}
+
+interface VerificationRequestData {
+  businessId: string
+  businessName: string
+  ownerName: string
+  ownerEmail: string
+  requestedAt: string
+  requestId: string
+  ownerNotes?: string
+  actorUserId?: string
+}
+
+interface ReviewerNotificationData {
+  reviewId: string
+  reviewerEmail: string
+  reviewerName: string
+  businessName: string
+  rating: number
+  reviewExcerpt: string
+  businessSlug?: string
+  actorUserId?: string
+}
+
 class NotificationService {
   private baseUrl: string
   private adminEmails: string[]
@@ -253,6 +282,165 @@ class NotificationService {
           businessName: data.businessName,
           reviewExcerpt: data.reviewExcerpt,
           reviewsUrl,
+        },
+        entityType: "review",
+        entityId: data.reviewId,
+        actorUserId: data.actorUserId,
+      },
+      template.html,
+      template.text,
+    )
+  }
+
+  // New user registration notification
+  async notifyNewUserRegistered(data: UserRegistrationData): Promise<boolean> {
+    console.log("[NotificationService] Sending new user registration notification to admins")
+
+    if (this.adminEmails.length === 0) {
+      console.warn("[NotificationService] No admin emails configured")
+      return false
+    }
+
+    const adminUserLink = `${this.baseUrl}/admin/users/${data.userId}`
+
+    const template = emailTemplates.adminNewUserRegistered({
+      userName: data.userName,
+      userEmail: data.userEmail,
+      registeredAt: data.registeredAt,
+      adminUserLink,
+    })
+
+    return await emailService.sendEmail(
+      {
+        to: this.adminEmails,
+        subject: template.subject,
+        templateKey: "admin_new_user_registered",
+        variables: {
+          userName: data.userName,
+          userEmail: data.userEmail,
+          registeredAt: data.registeredAt,
+          adminUserLink,
+        },
+        entityType: "user",
+        entityId: data.userId,
+      },
+      template.html,
+      template.text,
+    )
+  }
+
+  // Business verification request notifications
+  async notifyVerificationRequest(data: VerificationRequestData): Promise<boolean> {
+    console.log("[NotificationService] Sending verification request notifications")
+
+    const adminVerificationLink = `${this.baseUrl}/admin/verification-requests`
+    const adminBusinessLink = `${this.baseUrl}/admin/businesses/${data.businessId}`
+    const statusLink = `${this.baseUrl}/dashboard/businesses/${data.businessId}`
+
+    // Send confirmation email to business owner
+    const ownerTemplate = emailTemplates.userVerificationConfirmation({
+      ownerName: data.ownerName,
+      businessName: data.businessName,
+      requestedAt: data.requestedAt,
+      requestId: data.requestId,
+      ownerEmail: data.ownerEmail,
+      statusLink,
+    })
+
+    const ownerSuccess = await emailService.sendEmail(
+      {
+        to: [data.ownerEmail],
+        subject: ownerTemplate.subject,
+        templateKey: "user_verification_confirmation",
+        variables: {
+          ownerName: data.ownerName,
+          businessName: data.businessName,
+          requestedAt: data.requestedAt,
+          requestId: data.requestId,
+          ownerEmail: data.ownerEmail,
+          statusLink,
+        },
+        entityType: "verification_request",
+        entityId: data.requestId,
+        actorUserId: data.actorUserId,
+      },
+      ownerTemplate.html,
+      ownerTemplate.text,
+    )
+
+    // Send notification email to admins
+    let adminSuccess = true
+    if (this.adminEmails.length > 0) {
+      const adminTemplate = emailTemplates.adminVerificationRequest({
+        businessName: data.businessName,
+        ownerName: data.ownerName,
+        ownerEmail: data.ownerEmail,
+        requestedAt: data.requestedAt,
+        businessId: data.businessId,
+        ownerNotes: data.ownerNotes,
+        adminVerificationLink,
+        adminBusinessLink,
+      })
+
+      adminSuccess = await emailService.sendEmail(
+        {
+          to: this.adminEmails,
+          subject: adminTemplate.subject,
+          templateKey: "admin_verification_request",
+          variables: {
+            businessName: data.businessName,
+            ownerName: data.ownerName,
+            ownerEmail: data.ownerEmail,
+            requestedAt: data.requestedAt,
+            businessId: data.businessId,
+            ownerNotes: data.ownerNotes,
+            adminVerificationLink,
+            adminBusinessLink,
+          },
+          entityType: "verification_request",
+          entityId: data.requestId,
+          actorUserId: data.actorUserId,
+        },
+        adminTemplate.html,
+        adminTemplate.text,
+      )
+    }
+
+    return ownerSuccess && adminSuccess
+  }
+
+  // Review approved notification to reviewer (not business owner)
+  async notifyReviewerApproved(data: ReviewerNotificationData): Promise<boolean> {
+    console.log("[NotificationService] Sending review approved notification to reviewer")
+
+    const reviewLink = data.businessSlug
+      ? `${this.baseUrl}/businesses/${data.businessSlug}#review-${data.reviewId}`
+      : `${this.baseUrl}/businesses#review-${data.reviewId}`
+    const businessLink = data.businessSlug
+      ? `${this.baseUrl}/businesses/${data.businessSlug}`
+      : `${this.baseUrl}/businesses`
+
+    const template = emailTemplates.userReviewApproved({
+      reviewerName: data.reviewerName,
+      businessName: data.businessName,
+      rating: data.rating,
+      reviewExcerpt: data.reviewExcerpt,
+      reviewLink,
+      businessLink,
+    })
+
+    return await emailService.sendEmail(
+      {
+        to: [data.reviewerEmail],
+        subject: template.subject,
+        templateKey: "user_review_approved",
+        variables: {
+          reviewerName: data.reviewerName,
+          businessName: data.businessName,
+          rating: data.rating,
+          reviewExcerpt: data.reviewExcerpt,
+          reviewLink,
+          businessLink,
         },
         entityType: "review",
         entityId: data.reviewId,

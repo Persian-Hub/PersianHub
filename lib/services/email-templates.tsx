@@ -407,6 +407,380 @@ Open business queue: ${adminBusinessUrl}
       subject: `New business awaiting approval: ${variables.businessName}`,
     }
   }
+
+  // 8. Admin - New user registered
+  adminNewUserRegistered(variables: {
+    userName: string
+    userEmail: string
+    registeredAt: string
+    adminUserLink?: string
+  }): { html: string; text: string; subject: string } {
+    const adminUserLink = variables.adminUserLink || `${this.baseUrl}/admin/users`
+    const siteUrl = this.baseUrl
+
+    const html = `
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>New user registered</title>
+</head>
+<body style="margin:0;padding:0;background:#f8fafc;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;">
+    <tr>
+      <td align="center" style="padding:24px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+          <tr>
+            <td style="background:linear-gradient(90deg,#0f766e,#0ea5a4);padding:16px 24px;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:700;color:#ffffff;">Persian Hub</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 24px 0 24px;">
+              <h1 style="margin:0 0 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:20px;line-height:28px;color:#111827;">New user registered</h1>
+              <p style="margin:0 0 16px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#374151;">
+                A new user just signed up on <strong>Persian Hub</strong>.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 24px 0 24px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                <tr>
+                  <td style="padding:12px 0;border-top:1px solid #f3f4f6;">
+                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111827;"><strong>Name:</strong> {{ userName }}</div>
+                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111827;"><strong>Email:</strong> {{ userEmail }}</div>
+                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111827;"><strong>Registered at:</strong> {{ registeredAt }}</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 24px 24px 24px;">
+              <a href="{{ adminUserLink }}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;">Open in Admin</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f9fafb;padding:16px 24px;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#6b7280;">
+                You're receiving this email because you're an administrator of Persian Hub.
+              </div>
+            </td>
+          </tr>
+        </table>
+        <div style="height:24px;"></div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+
+    const text = `Persian Hub Admin - New user registered
+
+Name: ${variables.userName}
+Email: ${variables.userEmail}
+Registered at: ${variables.registeredAt}
+
+Open in Admin: ${adminUserLink}
+
+You're receiving this email because you're an administrator of Persian Hub.`
+
+    return {
+      html: this.replaceVariables(html, { ...variables, adminUserLink, siteUrl }),
+      text,
+      subject: "New user registered on Persian Hub",
+    }
+  }
+
+  // 9. Admin - Owner requested business verification
+  adminVerificationRequest(variables: {
+    businessName: string
+    ownerName: string
+    ownerEmail: string
+    requestedAt: string
+    businessId: string
+    ownerNotes?: string
+    adminVerificationLink?: string
+    adminBusinessLink?: string
+  }): { html: string; text: string; subject: string } {
+    const adminVerificationLink = variables.adminVerificationLink || `${this.baseUrl}/admin/verification-requests`
+    const adminBusinessLink = variables.adminBusinessLink || `${this.baseUrl}/admin/businesses/${variables.businessId}`
+    const siteUrl = this.baseUrl
+
+    const html = `
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Verification request</title>
+</head>
+<body style="margin:0;padding:0;background:#f8fafc;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;">
+    <tr>
+      <td align="center" style="padding:24px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+          <tr>
+            <td style="background:linear-gradient(90deg,#0f766e,#0ea5a4);padding:16px 24px;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:700;color:#ffffff;">Persian Hub</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 24px 0 24px;">
+              <h1 style="margin:0 0 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:20px;line-height:28px;color:#111827;">New verification request</h1>
+              <p style="margin:0 0 16px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#374151;">
+                The owner of <strong>{{ businessName }}</strong> has requested verification.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 24px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                <tr>
+                  <td style="padding:12px 0;border-top:1px solid #f3f4f6;">
+                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111827;"><strong>Owner:</strong> {{ ownerName }}</div>
+                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111827;"><strong>Email:</strong> {{ ownerEmail }}</div>
+                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111827;"><strong>Requested at:</strong> {{ requestedAt }}</div>
+                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111827;"><strong>Business ID:</strong> {{ businessId }}</div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0;border-top:1px solid #f3f4f6;">
+                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#374151;"><strong>Notes:</strong></div>
+                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#374151;">{{ ownerNotes }}</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 24px 24px 24px;">
+              <a href="{{ adminVerificationLink }}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;">Review & Verify</a>
+              <a href="{{ adminBusinessLink }}" style="display:inline-block;margin-left:8px;background:#111827;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;">Open Business</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f9fafb;padding:16px 24px;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#6b7280;">Admin notification • Persian Hub</div>
+            </td>
+          </tr>
+        </table>
+        <div style="height:24px;"></div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+
+    const text = `Persian Hub Admin - Verification request received for ${variables.businessName}
+
+Owner: ${variables.ownerName}
+Email: ${variables.ownerEmail}
+Requested at: ${variables.requestedAt}
+Business ID: ${variables.businessId}
+
+Notes: ${variables.ownerNotes || "No notes provided"}
+
+Review & Verify: ${adminVerificationLink}
+Open Business: ${adminBusinessLink}
+
+Admin notification • Persian Hub`
+
+    return {
+      html: this.replaceVariables(html, { ...variables, adminVerificationLink, adminBusinessLink, siteUrl }),
+      text,
+      subject: `Verification request received for ${variables.businessName}`,
+    }
+  }
+
+  // 10. User - Verification request received (confirmation)
+  userVerificationConfirmation(variables: {
+    ownerName: string
+    businessName: string
+    requestedAt: string
+    requestId: string
+    ownerEmail: string
+    statusLink?: string
+  }): { html: string; text: string; subject: string } {
+    const statusLink = variables.statusLink || `${this.baseUrl}/dashboard`
+    const siteUrl = this.baseUrl
+
+    const html = `
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Verification request received</title>
+</head>
+<body style="margin:0;padding:0;background:#f8fafc;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;">
+    <tr>
+      <td align="center" style="padding:24px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+          <tr>
+            <td style="background:linear-gradient(90deg,#0f766e,#0ea5a4);padding:16px 24px;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:700;color:#ffffff;">Persian Hub</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 24px 0 24px;">
+              <h1 style="margin:0 0 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:20px;line-height:28px;color:#111827;">Thanks, we got your request</h1>
+              <p style="margin:0 0 16px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#374151;">
+                Hi {{ ownerName }}, we've received your verification request for <strong>{{ businessName }}</strong>. Our team will review it and get back to you as soon as possible.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 24px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                <tr>
+                  <td style="padding:12px 0;border-top:1px solid #f3f4f6;">
+                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111827;"><strong>Submitted:</strong> {{ requestedAt }}</div>
+                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111827;"><strong>Reference:</strong> {{ requestId }}</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 24px 24px 24px;">
+              <a href="{{ statusLink }}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;">View request status</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 24px 24px 24px;">
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#6b7280;">
+                If we need more information, we'll contact you at <strong>{{ ownerEmail }}</strong>.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f9fafb;padding:16px 24px;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#6b7280;">Thank you for helping keep Persian Hub trusted and up to date.</div>
+            </td>
+          </tr>
+        </table>
+        <div style="height:24px;"></div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+
+    const text = `Persian Hub - We received your verification request
+
+Hi ${variables.ownerName},
+
+We've received your verification request for ${variables.businessName}. Our team will review it and get back to you as soon as possible.
+
+Submitted: ${variables.requestedAt}
+Reference: ${variables.requestId}
+
+View request status: ${statusLink}
+
+If we need more information, we'll contact you at ${variables.ownerEmail}.
+
+Thank you for helping keep Persian Hub trusted and up to date.`
+
+    return {
+      html: this.replaceVariables(html, { ...variables, statusLink, siteUrl }),
+      text,
+      subject: "We received your verification request",
+    }
+  }
+
+  // 11. User (reviewer, not the owner) - Review approved
+  userReviewApproved(variables: {
+    reviewerName: string
+    businessName: string
+    rating: number
+    reviewExcerpt: string
+    reviewLink?: string
+    businessLink?: string
+  }): { html: string; text: string; subject: string } {
+    const reviewLink = variables.reviewLink || `${this.baseUrl}/businesses`
+    const businessLink = variables.businessLink || `${this.baseUrl}/businesses`
+    const siteUrl = this.baseUrl
+
+    const html = `
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Review approved</title>
+</head>
+<body style="margin:0;padding:0;background:#f8fafc;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;">
+    <tr>
+      <td align="center" style="padding:24px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+          <tr>
+            <td style="background:linear-gradient(90deg,#0f766e,#0ea5a4);padding:16px 24px;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:700;color:#ffffff;">Persian Hub</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 24px 0 24px;">
+              <h1 style="margin:0 0 8px 0;font-family:Arial,Helvetica,sans-serif;font-size:20px;line-height:28px;color:#111827;">Your review is live 🎉</h1>
+              <p style="margin:0 0 16px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#374151;">
+                Hi {{ reviewerName }}, thanks for sharing your experience! Your review of <strong>{{ businessName }}</strong> has been approved and published.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 24px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                <tr>
+                  <td style="padding:12px 0;border-top:1px solid #f3f4f6;">
+                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111827;"><strong>Rating:</strong> {{ rating }}/5</div>
+                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111827;"><strong>Review excerpt:</strong></div>
+                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#374151;">"{{ reviewExcerpt }}"</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 24px 24px 24px;">
+              <a href="{{ reviewLink }}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;">View your review</a>
+              <a href="{{ businessLink }}" style="display:inline-block;margin-left:8px;background:#111827;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;">See business page</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f9fafb;padding:16px 24px;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#6b7280;">
+                You're receiving this because you submitted a review on Persian Hub.
+              </div>
+            </td>
+          </tr>
+        </table>
+        <div style="height:24px;"></div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+
+    const text = `Persian Hub - Your review was approved and is now live
+
+Hi ${variables.reviewerName},
+
+Thanks for sharing your experience! Your review of ${variables.businessName} has been approved and published.
+
+Rating: ${variables.rating}/5
+Review excerpt: "${variables.reviewExcerpt}"
+
+View your review: ${reviewLink}
+See business page: ${businessLink}
+
+You're receiving this because you submitted a review on Persian Hub.`
+
+    return {
+      html: this.replaceVariables(html, { ...variables, reviewLink, businessLink, siteUrl }),
+      text,
+      subject: "Your review was approved and is now live",
+    }
+  }
 }
 
 export const emailTemplates = new EmailTemplates()
