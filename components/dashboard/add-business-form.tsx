@@ -3,7 +3,7 @@
 import type React from "react"
 import type { google } from "google-maps"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -63,7 +63,6 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
     description: string
     exampleBusinesses: string
   } | null>(null)
-  const [addressValidated, setAddressValidated] = useState(false)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -112,27 +111,24 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
     setDefaultImage(newDefaultImage)
   }
 
-  const handleAddressChange = (address: string, placeDetails?: google.maps.places.PlaceResult, isValid: boolean = false) => {
-    console.log("[PersianHub] Address change triggered:", { address, hasPlaceDetails: !!placeDetails, isValid })
+  const handleAddressChange = useCallback((address: string, placeDetails?: google.maps.places.PlaceResult) => {
+    console.log("[PersianHub] Address change triggered:", { address, hasPlaceDetails: !!placeDetails })
 
-    setFormData((prevData) => ({ ...prevData, address }))
-    setAddressValidated(isValid)
+    if (placeDetails) {
+      const lat = placeDetails.geometry?.location?.lat()
+      const lng = placeDetails.geometry?.location?.lng()
 
-    if (placeDetails?.geometry?.location) {
-      const lat = placeDetails.geometry.location.lat()
-      const lng = placeDetails.geometry.location.lng()
+      setFormData((prev) => ({ ...prev, address: placeDetails.formatted_address || address }))
       setCoordinates({
-        latitude: lat,
-        longitude: lng,
+        latitude: lat ?? null,
+        longitude: lng ?? null,
       })
       console.log("[PersianHub] Coordinates extracted:", { lat, lng })
-    } else if (!isValid) {
-      setCoordinates({
-        latitude: null,
-        longitude: null,
-      })
+    } else {
+      setFormData((prev) => ({ ...prev, address }))
+      setCoordinates({ latitude: null, longitude: null })
     }
-  }
+  }, [])
 
   const handleHoursChange = (day: string, field: string, value: string | boolean) => {
     setWorkingHours((prev) => ({
@@ -146,12 +142,6 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!addressValidated) {
-      notify.error("Please select a valid address from the dropdown")
-      return
-    }
-    
     setLoading(true)
 
     try {
@@ -187,7 +177,7 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
           description: categoryRequest.description,
           example_businesses: categoryRequest.exampleBusinesses,
           requested_by: userId,
-          business_id: result.businessId,
+          business_id: result.businessId, // Associate with the created business
         })
 
         if (categoryError) {
@@ -296,14 +286,13 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
               value={formData.address}
               onChange={handleAddressChange}
               placeholder="Start typing your business address..."
-              required
             />
             {coordinates.latitude && coordinates.longitude && (
               <div className="text-sm text-green-600 bg-green-50 p-2 rounded border border-green-200">
                 ✓ Coordinates: {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)}
               </div>
             )}
-            {formData.address && !addressValidated && (
+            {formData.address && !coordinates.latitude && (
               <div className="text-sm text-yellow-600 bg-yellow-50 p-2 rounded border border-yellow-200">
                 ⚠ Please select an address from the dropdown to get accurate location coordinates
               </div>
@@ -552,7 +541,7 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
             <Button type="button" variant="outline" onClick={() => router.back()}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !addressValidated} className="bg-cyan-800 hover:bg-cyan-900">
+            <Button type="submit" disabled={loading} className="bg-cyan-800 hover:bg-cyan-900">
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
