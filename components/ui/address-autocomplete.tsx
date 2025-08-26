@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import { MapPin, Loader2, CheckCircle, AlertCircle } from "lucide-react"
 
@@ -14,11 +14,10 @@ declare global {
 
 interface AddressAutocompleteProps {
   value: string
-  onChange: (value: string, placeDetails?: any, isValid?: boolean) => void
+  onChange: (value: string, placeDetails?: any) => void
   placeholder?: string
   className?: string
   disabled?: boolean
-  required?: boolean
 }
 
 export function AddressAutocomplete({
@@ -27,7 +26,6 @@ export function AddressAutocomplete({
   placeholder = "Enter address...",
   className,
   disabled = false,
-  required = false,
 }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const autocompleteRef = useRef<any>(null)
@@ -38,7 +36,8 @@ export function AddressAutocomplete({
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedbackType, setFeedbackType] = useState<"success" | "warning">("success")
   const [isPlaceSelecting, setIsPlaceSelecting] = useState(false)
-  const [isValidAddress, setIsValidAddress] = useState(false)
+
+  const stableOnChange = useCallback(onChange, [])
 
   useEffect(() => {
     const checkGoogleMaps = () => {
@@ -106,9 +105,8 @@ export function AddressAutocomplete({
           setLastSelectedAddress(place.formatted_address)
           setFeedbackType("success")
           setShowFeedback(true)
-          setIsValidAddress(true)
 
-          onChange(place.formatted_address, place, true)
+          stableOnChange(place.formatted_address, place)
 
           setTimeout(() => {
             setIsPlaceSelecting(false)
@@ -121,10 +119,7 @@ export function AddressAutocomplete({
           console.log("[PersianHub] Place selection incomplete - missing address or coordinates")
           setFeedbackType("warning")
           setShowFeedback(true)
-          setIsValidAddress(false)
           setIsPlaceSelecting(false)
-          
-          onChange(value, null, false)
 
           setTimeout(() => {
             setShowFeedback(false)
@@ -135,13 +130,14 @@ export function AddressAutocomplete({
       const listener = ac.addListener("place_changed", handlePlaceChanged)
 
       return () => {
+        console.log("[PersianHub] Cleaning up autocomplete listeners")
         if (listener?.remove) listener.remove()
         autocompleteRef.current = null
       }
     } catch (error) {
       console.error("[PersianHub] Error initializing Google Places Autocomplete:", error)
     }
-  }, [isLoaded, disabled, onChange, value])
+  }, [isLoaded, disabled, stableOnChange])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
@@ -154,16 +150,14 @@ export function AddressAutocomplete({
 
     if (newValue === lastSelectedAddress && lastSelectedPlace) {
       console.log("[PersianHub] Input matches selected address, preserving place details")
-      onChange(newValue, lastSelectedPlace, true)
-      setIsValidAddress(true)
+      stableOnChange(newValue, lastSelectedPlace)
     } else {
       if (newValue !== lastSelectedAddress) {
         console.log("[PersianHub] Input differs from selected address, clearing place details")
         setLastSelectedPlace(null)
         setLastSelectedAddress("")
-        setIsValidAddress(false)
       }
-      onChange(newValue, null, false)
+      stableOnChange(newValue)
     }
   }
 
@@ -196,7 +190,6 @@ export function AddressAutocomplete({
               : ""
           }`}
           disabled={disabled || !isLoaded}
-          required={required}
         />
 
         {!isLoaded && (
