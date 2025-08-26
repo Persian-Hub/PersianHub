@@ -147,7 +147,10 @@ export function BusinessCard({ business }: BusinessCardProps) {
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-1">{business.name}</h3>
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600">{business.categories?.name}</p>
+              <p className="text-sm text-gray-600">
+                {business.categories?.name}
+                {business.subcategories?.name && ` → ${business.subcategories.name}`}
+              </p>
               <div className="flex items-center space-x-1">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                 <span className="text-sm font-medium text-gray-900">

@@ -14,10 +14,11 @@ declare global {
 
 interface AddressAutocompleteProps {
   value: string
-  onChange: (value: string, placeDetails?: any) => void
+  onChange: (value: string, placeDetails?: any, isValid?: boolean) => void
   placeholder?: string
   className?: string
   disabled?: boolean
+  required?: boolean
 }
 
 export function AddressAutocomplete({
@@ -26,6 +27,7 @@ export function AddressAutocomplete({
   placeholder = "Enter address...",
   className,
   disabled = false,
+  required = false,
 }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const autocompleteRef = useRef<any>(null)
@@ -36,29 +38,27 @@ export function AddressAutocomplete({
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedbackType, setFeedbackType] = useState<"success" | "warning">("success")
   const [isPlaceSelecting, setIsPlaceSelecting] = useState(false)
+  const [isValidAddress, setIsValidAddress] = useState(false)
 
   useEffect(() => {
     const checkGoogleMaps = () => {
       if (window.google?.maps?.places) {
-        console.log("[v0] Google Maps Places API loaded successfully")
+        console.log("[PersianHub] Google Maps Places API loaded successfully")
         setIsLoaded(true)
         return true
       }
       return false
     }
 
-    // Check if already loaded
     if (checkGoogleMaps()) return
 
-    // Listen for the global Maps loaded event
     const handleMapsLoaded = () => {
-      console.log("[v0] Received gmaps:loaded event")
+      console.log("[PersianHub] Received gmaps:loaded event")
       checkGoogleMaps()
     }
 
     window.addEventListener("gmaps:loaded", handleMapsLoaded)
 
-    // Fallback: poll for Google Maps availability
     const pollInterval = setInterval(() => {
       if (checkGoogleMaps()) {
         clearInterval(pollInterval)
@@ -71,11 +71,10 @@ export function AddressAutocomplete({
     }
   }, [])
 
-  // Initialize the Autocomplete instance
   useEffect(() => {
     if (!isLoaded || !inputRef.current || autocompleteRef.current || disabled) return
 
-    console.log("[v0] Initializing Google Places Autocomplete")
+    console.log("[PersianHub] Initializing Google Places Autocomplete")
 
     try {
       const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
@@ -86,11 +85,11 @@ export function AddressAutocomplete({
       autocompleteRef.current = ac
 
       const handlePlaceChanged = () => {
-        console.log("[v0] Place changed event triggered")
+        console.log("[PersianHub] Place changed event triggered")
         setIsPlaceSelecting(true)
 
         const place = ac.getPlace()
-        console.log("[v0] Place details:", {
+        console.log("[PersianHub] Place details:", {
           hasFormattedAddress: !!place?.formatted_address,
           hasGeometry: !!place?.geometry,
           hasLocation: !!place?.geometry?.location,
@@ -101,14 +100,15 @@ export function AddressAutocomplete({
           const lat = place.geometry.location.lat()
           const lng = place.geometry.location.lng()
 
-          console.log("[v0] Successfully extracted coordinates:", { lat, lng, address: place.formatted_address })
+          console.log("[PersianHub] Successfully extracted coordinates:", { lat, lng, address: place.formatted_address })
 
           setLastSelectedPlace(place)
           setLastSelectedAddress(place.formatted_address)
           setFeedbackType("success")
           setShowFeedback(true)
+          setIsValidAddress(true)
 
-          onChange(place.formatted_address, place)
+          onChange(place.formatted_address, place, true)
 
           setTimeout(() => {
             setIsPlaceSelecting(false)
@@ -118,10 +118,13 @@ export function AddressAutocomplete({
             setShowFeedback(false)
           }, 3000)
         } else {
-          console.log("[v0] Place selection incomplete - missing address or coordinates")
+          console.log("[PersianHub] Place selection incomplete - missing address or coordinates")
           setFeedbackType("warning")
           setShowFeedback(true)
+          setIsValidAddress(false)
           setIsPlaceSelecting(false)
+          
+          onChange(value, null, false)
 
           setTimeout(() => {
             setShowFeedback(false)
@@ -136,39 +139,39 @@ export function AddressAutocomplete({
         autocompleteRef.current = null
       }
     } catch (error) {
-      console.error("[v0] Error initializing Google Places Autocomplete:", error)
+      console.error("[PersianHub] Error initializing Google Places Autocomplete:", error)
     }
-  }, [isLoaded, disabled, onChange])
+  }, [isLoaded, disabled, onChange, value])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
-    console.log("[v0] Input change:", { newValue, isPlaceSelecting, lastSelectedAddress })
+    console.log("[PersianHub] Input change:", { newValue, isPlaceSelecting, lastSelectedAddress })
 
     if (isPlaceSelecting) {
-      console.log("[v0] Ignoring input change - place selection in progress")
+      console.log("[PersianHub] Ignoring input change - place selection in progress")
       return
     }
 
     if (newValue === lastSelectedAddress && lastSelectedPlace) {
-      // User hasn't changed the selected address, keep the place details
-      console.log("[v0] Input matches selected address, preserving place details")
-      onChange(newValue, lastSelectedPlace)
+      console.log("[PersianHub] Input matches selected address, preserving place details")
+      onChange(newValue, lastSelectedPlace, true)
+      setIsValidAddress(true)
     } else {
       if (newValue !== lastSelectedAddress) {
-        console.log("[v0] Input differs from selected address, clearing place details")
+        console.log("[PersianHub] Input differs from selected address, clearing place details")
         setLastSelectedPlace(null)
         setLastSelectedAddress("")
+        setIsValidAddress(false)
       }
-      onChange(newValue)
+      onChange(newValue, null, false)
     }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Prevent form submit while selecting a prediction
     if (e.key === "Enter" && autocompleteRef.current) {
       const predictions = document.querySelector(".pac-container") as HTMLElement | null
       if (predictions && predictions.style.display !== "none") {
-        console.log("[v0] Preventing form submit - autocomplete dropdown is open")
+        console.log("[PersianHub] Preventing form submit - autocomplete dropdown is open")
         e.preventDefault()
       }
     }
@@ -193,6 +196,7 @@ export function AddressAutocomplete({
               : ""
           }`}
           disabled={disabled || !isLoaded}
+          required={required}
         />
 
         {!isLoaded && (

@@ -18,7 +18,6 @@ import { Loader2, Plus, X } from "lucide-react"
 import { createBusiness } from "@/lib/actions"
 import { createClient } from "@/lib/supabase/client"
 import { notify } from "@/lib/ui/notify"
-import { convertToStandardFormat } from "@/lib/utils/working-hours"
 
 interface Category {
   id: number
@@ -64,6 +63,7 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
     description: string
     exampleBusinesses: string
   } | null>(null)
+  const [addressValidated, setAddressValidated] = useState(false)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -112,19 +112,11 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
     setDefaultImage(newDefaultImage)
   }
 
-  const handleAddressChange = (address: string, placeDetails?: google.maps.places.PlaceResult) => {
-    console.log("[v0] Address change triggered:", { address, hasPlaceDetails: !!placeDetails })
+  const handleAddressChange = (address: string, placeDetails?: google.maps.places.PlaceResult, isValid: boolean = false) => {
+    console.log("[PersianHub] Address change triggered:", { address, hasPlaceDetails: !!placeDetails, isValid })
 
-    if (!placeDetails?.geometry?.location) {
-      console.log("[v0] No place details - clearing coordinates")
-      setCoordinates({
-        latitude: null,
-        longitude: null,
-      })
-    }
-
-    // Only update address field, preserve all other form data
     setFormData((prevData) => ({ ...prevData, address }))
+    setAddressValidated(isValid)
 
     if (placeDetails?.geometry?.location) {
       const lat = placeDetails.geometry.location.lat()
@@ -133,7 +125,12 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
         latitude: lat,
         longitude: lng,
       })
-      console.log("[v0] Coordinates extracted:", { lat, lng })
+      console.log("[PersianHub] Coordinates extracted:", { lat, lng })
+    } else if (!isValid) {
+      setCoordinates({
+        latitude: null,
+        longitude: null,
+      })
     }
   }
 
@@ -149,6 +146,12 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!addressValidated) {
+      notify.error("Please select a valid address from the dropdown")
+      return
+    }
+    
     setLoading(true)
 
     try {
@@ -164,10 +167,7 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
       formDataObj.append("latitude", coordinates.latitude?.toString() || "")
       formDataObj.append("longitude", coordinates.longitude?.toString() || "")
       formDataObj.append("images", JSON.stringify(images))
-
-      const standardizedHours = convertToStandardFormat(workingHours)
-      formDataObj.append("opening_hours", JSON.stringify(standardizedHours))
-
+      formDataObj.append("opening_hours", JSON.stringify(workingHours))
       formDataObj.append("services", JSON.stringify(services))
       formDataObj.append("owner_keywords", JSON.stringify(ownerKeywords))
 
@@ -187,7 +187,7 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
           description: categoryRequest.description,
           example_businesses: categoryRequest.exampleBusinesses,
           requested_by: userId,
-          business_id: result.businessId, // Associate with the created business
+          business_id: result.businessId,
         })
 
         if (categoryError) {
@@ -303,7 +303,7 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
                 ✓ Coordinates: {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)}
               </div>
             )}
-            {formData.address && !coordinates.latitude && (
+            {formData.address && !addressValidated && (
               <div className="text-sm text-yellow-600 bg-yellow-50 p-2 rounded border border-yellow-200">
                 ⚠ Please select an address from the dropdown to get accurate location coordinates
               </div>
@@ -534,7 +534,7 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
               onChange={setOwnerKeywords}
               label="Extra Keywords for Search (Hidden from Users)"
               placeholder="نان , kebab, kabab, bread, جوجه کباب, Brooker, وام ماشین"
-              maxKeywords={150} // Updated from 20 to 150 keywords
+              maxKeywords={20}
               maxKeywordLength={50}
               className="space-y-2"
             />
@@ -552,7 +552,7 @@ export function AddBusinessForm({ categories, userId }: AddBusinessFormProps) {
             <Button type="button" variant="outline" onClick={() => router.back()}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="bg-cyan-800 hover:bg-cyan-900">
+            <Button type="submit" disabled={loading || !addressValidated} className="bg-cyan-800 hover:bg-cyan-900">
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
