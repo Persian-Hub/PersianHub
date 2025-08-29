@@ -276,19 +276,18 @@ const EditBusinessFormComponent = ({
         const fileExt = file.name.split(".").pop()
         const fileName = `${business.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
 
-        // Upload to Supabase Storage
-        const { data, error } = await supabase.storage.from("business-images").upload(fileName, file)
+        const { data, error } = await supabase.storage.from("images").upload(fileName, file)
 
         if (error) {
           console.error("Upload error:", error)
-          notify.error(`Failed to upload ${file.name}`)
+          notify.error(`Failed to upload ${file.name}: ${error.message}`)
           continue
         }
 
         // Get public URL
         const {
           data: { publicUrl },
-        } = supabase.storage.from("business-images").getPublicUrl(fileName)
+        } = supabase.storage.from("images").getPublicUrl(fileName)
 
         uploadedUrls.push(publicUrl)
       }
@@ -487,28 +486,24 @@ const EditBusinessFormComponent = ({
           <CardTitle className="flex items-center justify-between">
             Business Images
             <div className="flex items-center space-x-2">
-              {isAdmin && (
-                <>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isLoading}
-                  >
-                    <Upload className="h-4 w-4 mr-1" />
-                    Upload Images
-                  </Button>
-                </>
-              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading}
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                Upload Images
+              </Button>
               <Button type="button" variant="outline" size="sm" onClick={handleAddImageUrl}>
                 <LinkIcon className="h-4 w-4 mr-1" />
                 Add URL
@@ -520,11 +515,7 @@ const EditBusinessFormComponent = ({
           {images.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p>No images uploaded yet</p>
-              <p className="text-sm">
-                {isAdmin
-                  ? "Upload images or add URLs to showcase this business"
-                  : "Add image URLs to showcase your business"}
-              </p>
+              <p className="text-sm">Upload images or add URLs to showcase your business</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

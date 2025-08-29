@@ -24,19 +24,29 @@ export function ImageUpload({ images, defaultImage, onImagesChange, maxImages = 
     try {
       setUploading(true)
 
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        throw new Error("Please select an image file")
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error("File size must be less than 5MB")
+      }
+
       // Create unique filename
       const fileExt = file.name.split(".").pop()
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
       const filePath = `business-images/${fileName}`
 
-      const { data, error } = await supabase.storage.from("business-images").upload(filePath, file)
+      const { data, error } = await supabase.storage.from("images").upload(filePath, file)
 
       if (error) throw error
 
       // Get public URL
       const {
         data: { publicUrl },
-      } = supabase.storage.from("business-images").getPublicUrl(filePath)
+      } = supabase.storage.from("images").getPublicUrl(filePath)
 
       // Add to images array
       const newImages = [...images, publicUrl]
