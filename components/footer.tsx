@@ -120,6 +120,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/child-safety" className="text-gray-600 hover:text-blue-600 transition-colors">
+                  Child Safety Standards
+                </Link>
+              </li>
+              <li>
                 <Link href="/report" className="text-gray-600 hover:text-blue-600 transition-colors">
                   Report an Issue
                 </Link>
