@@ -25,8 +25,8 @@ export default function PrivacyPage() {
                   information. We comply with the Privacy Act 1988 (Cth) and the Australian Privacy Principles (APPs).
                   If you are in the EEA/UK, we also outline additional GDPR rights below.
                 </p>
-                <p className="mb-2">Controller: [Company legal name, e.g., Aussie Avatar Pty Ltd] (ABN [ABN]).</p>
-                <p>Contact: [privacy@yourdomain] • [postal address]</p>
+                <p className="mb-2">Controller: Aussie Avatar Pty Ltd,  (ABNAussie Avatar Pty Ltd).</p>
+                <p>Contact: info@persianhub.com.au</p>
               </section>
 
               <section>
@@ -127,6 +127,9 @@ export default function PrivacyPage() {
                   <li>
                     <strong>Successors</strong> in a merger, acquisition, or asset transfer (with safeguards).
                   </li>
+                  <li>
+                    <strong>Google/Apple requirements</strong> If you sign in with Google or Apple, those providers may process your data according to their own privacy policies.
+                  </li>
                 </ul>
                 <p>We do not sell personal information.</p>
               </section>
@@ -191,15 +194,13 @@ export default function PrivacyPage() {
                     portability, and lodge a complaint with your local supervisory authority.
                   </li>
                 </ul>
-                <p>Requests: [privacy@yourdomain]. We may need to verify your identity.</p>
+                <p>Requests: info@persianhub.com.au. We may need to verify your identity.</p>
               </section>
 
               <section>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">10) Cookies & similar technologies</h2>
                 <p>
-                  We use essential cookies and similar technologies to keep you signed in and secure the service. We may
-                  also use analytics cookies to understand usage and improve features. You can manage cookies in your
-                  browser/app settings; disabling some may limit functionality.
+                  We use local storage and similar technologies in the app to keep you signed in and secure the service. These are essential for functionality and cannot be disabled.
                 </p>
               </section>
 

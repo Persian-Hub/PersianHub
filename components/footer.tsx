@@ -9,7 +9,6 @@ import { useEffect, useState } from "react"
 
 export function Footer() {
   const [businessCount, setBusinessCount] = useState(0)
-  const [verifiedBusinessCount, setVerifiedBusinessCount] = useState(0)
 
   useEffect(() => {
     const getBusinessCount = async () => {
@@ -22,19 +21,7 @@ export function Footer() {
       setBusinessCount(count || 0)
     }
 
-    const getVerifiedBusinessCount = async () => {
-      const supabase = createClient()
-      const { count } = await supabase
-        .from("businesses")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "approved")
-        .eq("is_verified", true)
-
-      setVerifiedBusinessCount(count || 0)
-    }
-
     getBusinessCount()
-    getVerifiedBusinessCount()
   }, [])
 
   return (
@@ -61,7 +48,7 @@ export function Footer() {
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                <span>{verifiedBusinessCount} Verified businesses</span>
+                <span>Verified and trusted</span>
               </div>
             </div>
           </div>
