@@ -115,6 +115,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/data-deletion" className="text-gray-600 hover:text-blue-600 transition-colors">
+                  Data Deletion Instructions
+                </Link>
+              </li>
+              <li>
                 <Link href="/report" className="text-gray-600 hover:text-blue-600 transition-colors">
                   Report an Issue
                 </Link>
