@@ -21,6 +21,7 @@ import {
   TrendingUp,
   FileText,
   Shield,
+  Flag,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -195,6 +196,11 @@ export function AdminLayout({ children, title, searchPlaceholder, actions }: Adm
           icon: Shield,
           badge: counts.verificationRequests > 0 ? counts.verificationRequests.toString() : undefined,
           urgent: counts.verificationRequests > 0,
+        },
+        {
+          name: "Business Reports",
+          href: "/admin/reports",
+          icon: Flag,
         },
       ],
     },

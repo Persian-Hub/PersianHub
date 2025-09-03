@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer"
 import { createClient } from "@/lib/supabase/server"
-import crypto from "crypto"
+// import crypto from "crypto"
 
 // Email configuration interface
 interface EmailConfig {
@@ -132,7 +132,8 @@ class EmailService {
   private async logEmail(emailData: EmailData, logEntry: Partial<EmailLogEntry>): Promise<string> {
     const supabase = createClient()
 
-    const correlationId = crypto.randomUUID()
+    const correlationId =
+      globalThis.crypto?.randomUUID() || `email-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const dedupKey = this.generateDedupKey(emailData.templateKey, emailData.to[0], emailData.entityId)
 
     const fullLogEntry: EmailLogEntry = {

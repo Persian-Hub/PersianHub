@@ -1,7 +1,7 @@
 import { emailService } from "./email-service"
 import { emailTemplates } from "./email-templates"
 import { createClient } from "@/lib/supabase/server"
-import crypto from "crypto"
+// import crypto from "crypto"
 
 // Notification service that handles all email notifications for Persian Hub
 // Integrates with business and review workflows to send appropriate emails
@@ -61,6 +61,16 @@ interface ContactFormData {
   email: string
   subject: string
   message: string
+}
+
+interface BusinessReportData {
+  reportId: string
+  businessName: string
+  businessId: string
+  reportCategory: string
+  description: string
+  reporterName: string
+  reporterEmail: string
 }
 
 class NotificationService {
@@ -651,7 +661,7 @@ class NotificationService {
           date: currentDate,
         },
         entityType: "contact_form",
-        entityId: crypto.randomUUID(),
+        entityId: globalThis.crypto?.randomUUID() || `contact-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       },
       template.html,
       template.text,
@@ -729,6 +739,49 @@ class NotificationService {
       businessOwnerName: review.businesses.profiles.full_name || "Business Owner",
       reviewExcerpt,
     }
+  }
+
+  async sendAdminBusinessReport(data: BusinessReportData): Promise<boolean> {
+    console.log("[NotificationService] Sending business report notification to admins")
+
+    if (this.adminEmails.length === 0) {
+      console.warn("[NotificationService] No admin emails configured")
+      return false
+    }
+
+    const adminReportsLink = `${this.baseUrl}/admin/reports`
+    const businessLink = `${this.baseUrl}/admin/businesses/${data.businessId}`
+
+    const template = emailTemplates.adminBusinessReport({
+      businessName: data.businessName,
+      reportCategory: data.reportCategory,
+      description: data.description,
+      reporterName: data.reporterName,
+      reporterEmail: data.reporterEmail,
+      adminReportsLink,
+      businessLink,
+    })
+
+    return await emailService.sendEmail(
+      {
+        to: this.adminEmails,
+        subject: template.subject,
+        templateKey: "admin_business_report",
+        variables: {
+          businessName: data.businessName,
+          reportCategory: data.reportCategory,
+          description: data.description,
+          reporterName: data.reporterName,
+          reporterEmail: data.reporterEmail,
+          adminReportsLink,
+          businessLink,
+        },
+        entityType: "business_report",
+        entityId: data.reportId,
+      },
+      template.html,
+      template.text,
+    )
   }
 }
 

@@ -204,6 +204,8 @@ export default async function BusinessPage({
                 latitude={business.latitude}
                 longitude={business.longitude}
                 address={business.address}
+                businessId={business.id}
+                businessName={business.name}
               />
             </div>
 
