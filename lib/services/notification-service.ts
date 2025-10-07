@@ -1,7 +1,5 @@
-import { emailService } from "./email-service"
 import { emailTemplates } from "./email-templates"
 import { createClient } from "@/lib/supabase/server"
-// import crypto from "crypto"
 
 // Notification service that handles all email notifications for Persian Hub
 // Integrates with business and review workflows to send appropriate emails
@@ -82,9 +80,16 @@ class NotificationService {
     this.adminEmails = (process.env.ADMIN_EMAILS || "").split(",").filter(Boolean)
   }
 
+  private async getEmailService() {
+    const { emailService } = await import("./email-service")
+    return emailService
+  }
+
   // Business notification methods
   async notifyBusinessSubmitted(data: BusinessNotificationData): Promise<boolean> {
     console.log("[NotificationService] Sending business submitted notifications")
+
+    const emailService = await this.getEmailService()
 
     const dashboardUrl = `${this.baseUrl}/dashboard`
     const adminBusinessUrl = `${this.baseUrl}/admin/pending-businesses`
@@ -149,6 +154,8 @@ class NotificationService {
   async notifyBusinessApproved(data: BusinessNotificationData): Promise<boolean> {
     console.log("[NotificationService] Sending business approved notification")
 
+    const emailService = await this.getEmailService()
+
     const listingUrl = data.slug ? `${this.baseUrl}/businesses/${data.slug}` : `${this.baseUrl}/businesses`
 
     const template = emailTemplates.businessApproved({
@@ -184,6 +191,8 @@ class NotificationService {
       return false
     }
 
+    const emailService = await this.getEmailService()
+
     const editUrl = `${this.baseUrl}/dashboard/businesses/${data.businessId}/edit`
 
     const template = emailTemplates.businessRejected({
@@ -215,6 +224,8 @@ class NotificationService {
 
   async notifyBusinessVerified(data: BusinessNotificationData): Promise<boolean> {
     console.log("[NotificationService] Sending business verified notification")
+
+    const emailService = await this.getEmailService()
 
     const listingUrl = data.slug ? `${this.baseUrl}/businesses/${data.slug}` : `${this.baseUrl}/businesses`
 
@@ -252,6 +263,8 @@ class NotificationService {
       return false
     }
 
+    const emailService = await this.getEmailService()
+
     const adminReviewUrl = `${this.baseUrl}/admin/pending-reviews`
 
     const template = emailTemplates.adminNewReview({
@@ -281,6 +294,8 @@ class NotificationService {
 
   async notifyReviewApproved(data: ReviewNotificationData): Promise<boolean> {
     console.log("[NotificationService] Sending review approved notification to business owner")
+
+    const emailService = await this.getEmailService()
 
     const reviewsUrl = `${this.baseUrl}/businesses/${data.businessId}#reviews`
 
@@ -320,6 +335,8 @@ class NotificationService {
       return false
     }
 
+    const emailService = await this.getEmailService()
+
     const adminUserLink = `${this.baseUrl}/admin/users/${data.userId}`
 
     const template = emailTemplates.adminNewUserRegistered({
@@ -351,6 +368,8 @@ class NotificationService {
   // Business verification request notifications
   async notifyVerificationRequest(data: VerificationRequestData): Promise<boolean> {
     console.log("[NotificationService] Sending verification request notifications")
+
+    const emailService = await this.getEmailService()
 
     const adminVerificationLink = `${this.baseUrl}/admin/verification-requests`
     const adminBusinessLink = `${this.baseUrl}/admin/businesses/${data.businessId}`
@@ -432,6 +451,8 @@ class NotificationService {
   async notifyReviewerApproved(data: ReviewerNotificationData): Promise<boolean> {
     console.log("[NotificationService] Sending review approved notification to reviewer")
 
+    const emailService = await this.getEmailService()
+
     const reviewLink = data.businessSlug
       ? `${this.baseUrl}/businesses/${data.businessSlug}#review-${data.reviewId}`
       : `${this.baseUrl}/businesses#review-${data.reviewId}`
@@ -485,6 +506,8 @@ class NotificationService {
       return false
     }
 
+    const emailService = await this.getEmailService()
+
     const adminVerificationLink = `${this.baseUrl}/admin/verification-requests`
 
     const template = emailTemplates.adminVerificationRequest({
@@ -522,6 +545,8 @@ class NotificationService {
   }): Promise<boolean> {
     console.log("[NotificationService] Sending user verification confirmation")
 
+    const emailService = await this.getEmailService()
+
     const statusLink = `${this.baseUrl}/dashboard`
 
     const template = emailTemplates.userVerificationConfirmation({
@@ -555,6 +580,8 @@ class NotificationService {
     adminNotes?: string
   }): Promise<boolean> {
     console.log("[NotificationService] Sending verification approved notification")
+
+    const emailService = await this.getEmailService()
 
     const businessLink = `${this.baseUrl}/dashboard`
 
@@ -592,6 +619,8 @@ class NotificationService {
   }): Promise<boolean> {
     console.log("[NotificationService] Sending verification rejected notification")
 
+    const emailService = await this.getEmailService()
+
     const resubmitLink = `${this.baseUrl}/dashboard`
 
     const template = emailTemplates.verificationRejected({
@@ -628,6 +657,8 @@ class NotificationService {
       console.warn("[NotificationService] No admin emails configured")
       return false
     }
+
+    const emailService = await this.getEmailService()
 
     const currentDate = new Date().toLocaleDateString("en-AU", {
       year: "numeric",
@@ -748,6 +779,8 @@ class NotificationService {
       console.warn("[NotificationService] No admin emails configured")
       return false
     }
+
+    const emailService = await this.getEmailService()
 
     const adminReportsLink = `${this.baseUrl}/admin/reports`
     const businessLink = `${this.baseUrl}/admin/businesses/${data.businessId}`

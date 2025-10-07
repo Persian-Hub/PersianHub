@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { supabase } from "@/lib/supabase/client"
-import { Upload, X, Star, StarOff, ImageIcon } from "lucide-react"
+import { Upload, X, Star, StarOff, ImageIcon, Loader2 } from "lucide-react"
 import Image from "next/image"
 
 interface ImageUploadProps {
@@ -18,37 +18,75 @@ interface ImageUploadProps {
 
 export function ImageUpload({ images, defaultImage, onImagesChange, maxImages = 5 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
+  const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set())
+  const [uploadErrors, setUploadErrors] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const uploadImage = async (file: File) => {
-    try {
-      setUploading(true)
+    const fileId = `${file.name}-${Date.now()}`
 
-      // Create unique filename
+    try {
+      console.log("[v0] Starting upload for file:", file.name, "Size:", file.size, "Type:", file.type)
+
+      setUploadingFiles((prev) => new Set([...prev, fileId]))
+      setUploading(true)
+      setUploadErrors([])
+
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error(`File ${file.name} is too large. Maximum size is 5MB.`)
+      }
+
+      if (!file.type.startsWith("image/")) {
+        throw new Error(`File ${file.name} is not a valid image.`)
+      }
+
       const fileExt = file.name.split(".").pop()
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
-      const filePath = `business-images/${fileName}`
+      const filePath = `${fileName}`
 
-      const { data, error } = await supabase.storage.from("business-images").upload(filePath, file)
+      console.log("[v0] Uploading to path:", filePath)
 
-      if (error) throw error
+      const { data, error } = await supabase.storage.from("business-images").upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      })
 
-      // Get public URL
+      if (error) {
+        console.error("[v0] Upload error:", error)
+        throw new Error(`Upload failed: ${error.message}`)
+      }
+
+      console.log("[v0] Upload successful:", data)
+
       const {
         data: { publicUrl },
       } = supabase.storage.from("business-images").getPublicUrl(filePath)
 
-      // Add to images array
+      console.log("[v0] Public URL generated:", publicUrl)
+
       const newImages = [...images, publicUrl]
       const newDefaultImage = images.length === 0 ? publicUrl : defaultImage
 
       onImagesChange(newImages, newDefaultImage)
+      console.log("[v0] Image successfully added to gallery")
     } catch (error) {
-      console.error("Error uploading image:", error)
+      console.error("[v0] Error uploading image:", error)
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
-      alert(`Error uploading image: ${errorMessage}. Please try again.`)
+
+      setUploadErrors((prev) => [...prev, `${file.name}: ${errorMessage}`])
     } finally {
-      setUploading(false)
+      setUploadingFiles((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(fileId)
+        return newSet
+      })
+
+      setUploadingFiles((prev) => {
+        if (prev.size === 0) {
+          setUploading(false)
+        }
+        return prev
+      })
     }
   }
 
@@ -56,13 +94,19 @@ export function ImageUpload({ images, defaultImage, onImagesChange, maxImages = 
     const files = event.target.files
     if (!files) return
 
-    Array.from(files).forEach((file) => {
-      if (file.type.startsWith("image/") && images.length < maxImages) {
-        uploadImage(file)
+    console.log("[v0] Files selected:", files.length)
+    setUploadErrors([])
+
+    Array.from(files).forEach((file, index) => {
+      if (file.type.startsWith("image/") && images.length + index < maxImages) {
+        setTimeout(() => uploadImage(file), index * 100)
+      } else if (!file.type.startsWith("image/")) {
+        setUploadErrors((prev) => [...prev, `${file.name}: Not a valid image file`])
+      } else if (images.length + index >= maxImages) {
+        setUploadErrors((prev) => [...prev, `${file.name}: Maximum ${maxImages} images allowed`])
       }
     })
 
-    // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -72,7 +116,6 @@ export function ImageUpload({ images, defaultImage, onImagesChange, maxImages = 
     const newImages = images.filter((img) => img !== imageUrl)
     let newDefaultImage = defaultImage
 
-    // If removing the default image, set first remaining image as default
     if (imageUrl === defaultImage && newImages.length > 0) {
       newDefaultImage = newImages[0]
     } else if (newImages.length === 0) {
@@ -95,7 +138,6 @@ export function ImageUpload({ images, defaultImage, onImagesChange, maxImages = 
         </span>
       </div>
 
-      {/* Upload Button */}
       <div className="flex gap-2">
         <input
           ref={fileInputRef}
@@ -112,12 +154,39 @@ export function ImageUpload({ images, defaultImage, onImagesChange, maxImages = 
           disabled={uploading || images.length >= maxImages}
           className="flex items-center gap-2"
         >
-          <Upload className="h-4 w-4" />
-          {uploading ? "Uploading..." : "Add Images"}
+          {uploading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Uploading... ({uploadingFiles.size} files)
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4" />
+              Add Images
+            </>
+          )}
         </Button>
       </div>
 
-      {/* Images Grid */}
+      {uploadErrors.length > 0 && (
+        <div className="space-y-1">
+          {uploadErrors.map((error, index) => (
+            <div key={index} className="text-sm text-red-600 bg-red-50 p-2 rounded border border-red-200">
+              {error}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {uploading && (
+        <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Uploading {uploadingFiles.size} file(s)... Please wait.
+          </div>
+        </div>
+      )}
+
       {images.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {images.map((imageUrl, index) => (
@@ -131,14 +200,12 @@ export function ImageUpload({ images, defaultImage, onImagesChange, maxImages = 
                     className="object-cover"
                   />
 
-                  {/* Default Image Badge */}
                   {imageUrl === defaultImage && (
                     <div className="absolute top-2 left-2 bg-amber-500 text-white px-2 py-1 rounded text-xs font-medium">
                       Default
                     </div>
                   )}
 
-                  {/* Action Buttons */}
                   <div className="absolute top-2 right-2 flex gap-1">
                     <Button
                       type="button"
@@ -170,7 +237,6 @@ export function ImageUpload({ images, defaultImage, onImagesChange, maxImages = 
         </div>
       )}
 
-      {/* Empty State */}
       {images.length === 0 && (
         <Card className="border-dashed border-2 border-gray-300">
           <CardContent className="flex flex-col items-center justify-center py-8">
